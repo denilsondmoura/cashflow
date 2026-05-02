@@ -1,4 +1,4 @@
-from src.domain.entities import Categoria, Movimentacao, Orcamento, Planejamento
+from src.domain.entities import Categoria
 from src.domain.objects_values import Currency
 from datetime import date
 from dataclasses import dataclass
@@ -17,24 +17,17 @@ class CriarMovimentacaoCommand:
     repetir_ate: date
 
     def __post_init__(self):
-        current_date = date.today()
-        if self.data_prevista < current_date:
-            raise ValueError("Data prevista menor que a data atual")
+        if not self.data_prevista:
+            raise ValueError("Data prevista não informada")
+        
+        if not self.descricao:
+            raise ValueError("Descrição não informada")
 
-        if self.data_conclusao < current_date:
-            raise ValueError("Data de conclusão menor que a data atual")
+        if not self.valor:
+            raise ValueError("Valor não informado")
 
-        if self.repetir_ate < self.data_prevista:
-            raise ValueError("Data de repetição menor que a data prevista")
-
-        if self.qtd_repeticoes < 1:
-            raise ValueError("Quantidade de repetições menor que 1")
-
-        if self.repetir and self.repetir_ate is None:
-            raise ValueError("Data de repetição obrigatória")
-
-        if self.foi_concluida and self.data_conclusao is None:
-            raise ValueError("Data de conclusão obrigatória")
+        if self.repetir and (not self.qtd_repeticoes and not self.repetir_ate):
+            raise ValueError("Quantidade de repetições ou data de repetição devem ser informados")  
 
 
 @dataclass
