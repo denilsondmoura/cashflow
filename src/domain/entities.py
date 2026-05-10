@@ -5,6 +5,8 @@ from dataclasses import dataclass
 @dataclass
 class Planning:
     id: int
+    name: str
+    color: str
     end_date: date
     average_daily_expenditure: Currency
     total_budgeted_amount: Currency
@@ -12,6 +14,10 @@ class Planning:
     budgets: list[Budget]
     transactions: list[Transaction]
     notifications: list[Notification]
+
+    def __post_init__(self):
+        if self.end_date < date.today():
+            raise ValueError("Data final do planejamento deve ser maior que a data atual!") 
 
     def _update_values(self):
         self.total_budgeted_amount = sum([budget.limit_amount for budget in self.budgets])
@@ -36,13 +42,11 @@ class Planning:
             due_today = current_date <= date.today()
             transaction_cleared = transaction.cleared or (transaction.auto_pay and due_today)
             cleared_at = date.today() if transaction_cleared else None
-            transaction_type = "inflow" if transaction.amount >= 0 else "outflow"
 
             transaction = Transaction(
                 description=final_desc,
                 amount=transaction.amount,
                 due_date=current_date,
-                type=transaction_type,
                 cleared=transaction_cleared,
                 cleared_at=cleared_at,
                 auto_pay=transaction.auto_pay
@@ -128,6 +132,17 @@ class Budget:
     current_balance: Currency
     limit_amount: Currency
     description: str
+    planning_id: int
+
+    def __post_init__(self):
+        if not self.current_balance:
+            self.current_balance = Currency("0")
+        
+        if not self.limit_amount:
+            self.limit_amount = Currency("0")
+
+        if not self.planning_id:
+            raise ValueError("Planejamento ao qual o orçamento pertence não foi informado!")
 
 
 @dataclass
@@ -140,6 +155,26 @@ class Transaction:
     cleared: bool
     cleared_at: date
     auto_pay: bool
+    planning_id: int
+
+    def __post_init__(self):
+        if not self.amount:
+            self.amount = Currency("0")
+        
+        if not self.cleared:
+            self.cleared = False
+
+        if not self.auto_pay:
+            self.auto_pay = False
+        
+        if not self.type:
+            self.type = "outflow" if self.amount < 0 else "inflow"
+
+        
+        if not self.planning_id:
+            raise ValueError("Planejamento ao qual a transação pertence não foi informado!")
+
+        
 
 
 @dataclass
@@ -149,3 +184,4 @@ class Notification:
     message: str
     related_transaction_id: int
     is_read: bool
+    planning_id: int

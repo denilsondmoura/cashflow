@@ -1,53 +1,12 @@
 
 # FLUXO DE CAIXA
 
-# Planejamento
-- planejar_ate
-- valor_diaria currency
-- total_orcado currency
-- orcamentos many to many Orcamento
-- movimentacoes many to many Movimentacao
-
-# Orcamento
-- saldo_atual currency
-- saldo_previsto currency
-- categoria foreign key Categoria
-
-# Movimentacao
-- data_prevista date
-- descricao str
-- valor currency
-- foi_concluida bool
-- data_conclusao date
-- categoria foreign key Categoria
-- eh_debito_automatico bool
-- repetir bool
-- qtd_repeticoes
-- repetir_ate date
-- alertas many to many AlertaMovimentacao
-
-+ Sempre que uma movimentação for criada verificar se a meta_mensal da categoria não foi batida. Se foi, gerar alerta
-+ Se chegar a data_prevista e ainda não tiver sido concluido, exibe alerta solicitando atualização da data ou conclusão
-
-# Categoria
-- descricao str
-- cor str
-- icone str
-- movimentacoes many to many Movimentacao
-- alertas many to many AlertaCategoria
-
-# AlertaMovimentacao
-- data date
-- conteudo str
-- movimentacao foreign key Movimentacao
-- foi_resolvido bool
-
-# AlertaCategoria
-- data date
-- conteudo str
-- categoria foreign key Categoria
-- foi_resolvido bool
-
+- Como usuario quero poder criar um planejamento de fluxo de caixa
+- Como usuario quero poder criar orçamentos para cada categoria
+- Como usuario quero poder atualizar as informações de um orçamento
+- Como usuario quero poder cadastrar transações previstas e recorrentes
+- Como usuario quero poder atualizar as informações de uma transação
+- Como usuario quero poder visualizar o fluxo de caixa de forma por mes, ano e etc...
 
 # LISTA DE DESEJOS
 + Lugar onde posso guardar coisas que quero comprar, ou viagens, etc

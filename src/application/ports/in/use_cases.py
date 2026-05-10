@@ -1,104 +1,74 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.domain.entities import (
-    Categoria, 
-    Movimentacao, 
-    Orcamento, 
-    Planejamento
+    Planning, 
+    Budget, 
+    Transaction
 )
 
-from commands.movimentacao_comands import (
-    CriarMovimentacaoCommand,
-    AtualizarMovimentacaoCommand,
-    FiltrarMovimentacaoCommand
+from commands.planning_commands import (
+    CreatePlanningCommand,
+    UpdatePlanningCommand
 )
 
-from commands.categoria_commands import (
-    CriarCategoriaCommand,
-    AtualizarCategoriaCommand
+from commands.budget_commands import (
+    CreateBudgetPlanningCommand,
+    UpdateBudgetPlanningCommand
 )
 
-from commands.orcamento_commands import (
-    CriarOrcamentoCommand,
-    AtualizarOrcamentoCommand
+from commands.transaction_commands import (
+    CreateRecurringTransactionPlanningCommand,
+    UpdateTransactionPlanningCommand,
+    FilterTransactionPlanningCommand
 )
 
-from commands.planejamento_commands import (
-    CriarPlanejamentoCommand,
-    AtualizarPlanejamentoCommand
-)
 
-class MovimentacaoUseCase(ABC):
+class PlanningUseCase(ABC):
     @abstractmethod
-    def criar_movimentacao(self, command: CriarMovimentacaoCommand) -> list[Movimentacao]:
+    def create_planning(self, command: CreatePlanningCommand) -> Planning:
         pass
 
     @abstractmethod
-    def atualizar_movimentacao(self, command: AtualizarMovimentacaoCommand) -> Movimentacao:
+    def update_planning(self, command: UpdatePlanningCommand) -> Planning:
         pass
 
     @abstractmethod
-    def deletar_movimentacao(self, id: int) -> bool:
+    def delete_planning(self, id: int) -> bool:
         pass
 
     @abstractmethod
-    def listar_movimentacoes(self) -> list[Movimentacao]:
+    def list_plannings(self) -> Optional[list[Planning]]:
         pass
 
     @abstractmethod
-    def filtrar_movimentacoes(self, command: FiltrarMovimentacaoCommand) -> list[Movimentacao]:
-        pass
-        
-
-class OrcamentoUseCase(ABC):
-    @abstractmethod
-    def criar_orcamento(self, command: CriarOrcamentoCommand) -> Orcamento:
+    def add_budget_to_planning(self, command: CreateBudgetPlanningCommand) -> bool:
         pass
 
     @abstractmethod
-    def atualizar_orcamento(self, command: AtualizarOrcamentoCommand) -> Orcamento:
+    def update_budget_in_planning(self, command: UpdateBudgetPlanningCommand) -> bool:
         pass
 
     @abstractmethod
-    def deletar_orcamento(self, id: int) -> bool:
+    def remove_budget_from_planning(self, id: int) -> bool:
         pass
 
     @abstractmethod
-    def listar_orcamentos(self) -> list[Orcamento]:
-        pass
-
-
-class CategoriaUseCase(ABC):
-    @abstractmethod
-    def criar_categoria(self, command: CriarCategoriaCommand) -> Categoria:
+    def list_budgets(self) -> Optional[list[Budget]]:
         pass
 
     @abstractmethod
-    def atualizar_categoria(self, command: AtualizarCategoriaCommand) -> Categoria:
+    def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionPlanningCommand) -> bool:
         pass
 
     @abstractmethod
-    def deletar_categoria(self, id: int) -> bool:
+    def update_transaction_in_planning(self, command: UpdateTransactionPlanningCommand) -> bool:
         pass
 
     @abstractmethod
-    def listar_categorias(self) -> list[Categoria]:
+    def remove_transaction_from_planning(self, id: int) -> bool:
         pass
-
     
-class PlanejamentoUseCase(ABC):
     @abstractmethod
-    def criar_planejamento(self, command: CriarPlanejamentoCommand) -> Planejamento:
-        pass
-
-    @abstractmethod
-    def atualizar_planejamento(self, command: AtualizarPlanejamentoCommand) -> Planejamento:
-        pass
-
-    @abstractmethod
-    def deletar_planejamento(self, id: int) -> bool:
-        pass
-
-    @abstractmethod
-    def listar_planejamentos(self) -> list[Planejamento]:
+    def filter_transactions_in_planning(self, command: FilterTransactionPlanningCommand) -> Optional[list[Transaction]]:
         pass
