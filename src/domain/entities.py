@@ -1,6 +1,8 @@
-from objects_values import Currency
-from datetime import date
+from src.domain.objects_values import Currency
+from datetime import date, timedelta
 from dataclasses import dataclass
+import calendar
+
 
 @dataclass
 class Planning:
@@ -11,20 +13,30 @@ class Planning:
     average_daily_expenditure: Currency
     total_budgeted_amount: Currency
     total_balance_amount: Currency
-    budgets: list[Budget]
-    transactions: list[Transaction]
-    notifications: list[Notification]
+    budgets: list['Budget']
+    transactions: list['Transaction']
+    notifications: list['Notification']
 
     def __post_init__(self):
         if self.end_date < date.today():
             raise ValueError("Data final do planejamento deve ser maior que a data atual!") 
 
-    def _update_values(self):
-        self.total_budgeted_amount = sum([budget.limit_amount for budget in self.budgets])
-        self.total_balance_amount = sum([budget.current_balance for budget in self.budgets])
-        self.average_daily_expenditure = self.total_budgeted_amount / 30.5
+    def _add_months(self, sourcedate, months):
+        month = sourcedate.month - 1 + months
+        year = sourcedate.year + month // 12
+        month = month % 12 + 1
+        day = min(sourcedate.day, calendar.monthrange(year, month)[1])
+        return date(year, month, day)
 
-    def add_recurring_transaction(self, transaction: Transaction, iterations=None, repeat_until=None):
+    def _update_values(self):
+        self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Currency(0)
+        self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Currency(0)
+        if self.total_budgeted_amount:
+            self.average_daily_expenditure = self.total_budgeted_amount / 30.5
+        else:
+            self.average_daily_expenditure = Currency(0)
+
+    def add_recurring_transaction(self, transaction: 'Transaction', iterations=None, repeat_until=None):
         current_date = transaction.due_date
         count = 1
         
@@ -43,22 +55,29 @@ class Planning:
             transaction_cleared = transaction.cleared or (transaction.auto_pay and due_today)
             cleared_at = date.today() if transaction_cleared else None
 
-            transaction = Transaction(
+            new_transaction = Transaction(
+                id=0,
                 description=final_desc,
                 amount=transaction.amount,
                 due_date=current_date,
                 cleared=transaction_cleared,
                 cleared_at=cleared_at,
-                auto_pay=transaction.auto_pay
+                auto_pay=transaction.auto_pay,
+                type="inflow" if transaction.amount >= 0 else "outflow",
+                planning_id=transaction.planning_id
             )
-            self.transactions.append(transaction)
+            self.transactions.append(new_transaction)
             
-            current_date = current_date + relativedelta(months=1)
+            current_date = self._add_months(current_date, 1)
             count += 1
 
-    def update_transaction(self, transaction: Transaction):
-        transaction_index = self.transactions.index(transaction)
-
+    def update_transaction(self, transaction: 'Transaction'):
+        transaction_index = -1
+        for i, t in enumerate(self.transactions):
+            if t.id == transaction.id:
+                transaction_index = i
+                break
+        
         if transaction_index == -1:
             raise ValueError("Transação não encontrada!")
 
@@ -76,14 +95,18 @@ class Planning:
         self.transactions[transaction_index].auto_pay = transaction.auto_pay
         return True
 
-    def add_budget(self, budget: Budget):
+    def add_budget(self, budget: 'Budget'):
         self.budgets.append(budget)
         self._update_values()
 
         return True
 
-    def update_budget(self, budget: Budget):
-        budget_index = self.budgets.index(budget)
+    def update_budget(self, budget: 'Budget'):
+        budget_index = -1
+        for i, b in enumerate(self.budgets):
+            if b.id == budget.id:
+                budget_index = i
+                break
 
         if budget_index == -1:
             raise ValueError("Orçamento não encontrado!")
@@ -96,8 +119,12 @@ class Planning:
 
         return True
     
-    def remove_budget(self, budget: Budget):
-        budget_index = self.budgets.index(budget)
+    def remove_budget(self, budget: 'Budget'):
+        budget_index = -1
+        for i, b in enumerate(self.budgets):
+            if b.id == budget.id:
+                budget_index = i
+                break
 
         if budget_index == -1:
             raise ValueError("Orçamento não encontrado!")
@@ -116,10 +143,12 @@ class Planning:
                     transaction.due_date = date.today()
                     self.notifications.append(
                         Notification(
+                            id=0,
                             trigger_date=date.today(),
                             message=f"A transação '{transaction.description}: {transaction.amount.mask_value()}' já aconteceu?",
                             related_transaction_id=transaction.id,
-                            is_read=False
+                            is_read=False,
+                            planning_id=transaction.planning_id
                         )
                     )
                 return False
@@ -136,10 +165,10 @@ class Budget:
 
     def __post_init__(self):
         if not self.current_balance:
-            self.current_balance = Currency("0")
+            self.current_balance = Currency(0)
         
         if not self.limit_amount:
-            self.limit_amount = Currency("0")
+            self.limit_amount = Currency(0)
 
         if not self.planning_id:
             raise ValueError("Planejamento ao qual o orçamento pertence não foi informado!")
@@ -159,7 +188,7 @@ class Transaction:
 
     def __post_init__(self):
         if not self.amount:
-            self.amount = Currency("0")
+            self.amount = Currency(0)
         
         if not self.cleared:
             self.cleared = False
@@ -168,13 +197,11 @@ class Transaction:
             self.auto_pay = False
         
         if not self.type:
-            self.type = "outflow" if self.amount < 0 else "inflow"
+            self.type = "outflow" if self.amount < Currency(0) else "inflow"
 
         
         if not self.planning_id:
             raise ValueError("Planejamento ao qual a transação pertence não foi informado!")
-
-        
 
 
 @dataclass

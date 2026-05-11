@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CreateRecurringTransactionPlanningCommand:
+    planning_id: int
     due_date: date
     description: str
     amount: Currency
@@ -31,16 +32,15 @@ class CreateRecurringTransactionPlanningCommand:
 @dataclass
 class UpdateTransactionPlanningCommand:
     id: int
-    data_prevista: date
-    descricao: str
-    valor: Currency
-    foi_concluida: bool
-    data_conclusao: date
-    categoria: Categoria
-    eh_debito_automatico: bool
-    repetir: bool
-    qtd_repeticoes: int
-    repetir_ate: date
+    due_date: date
+    description: str
+    amount: Currency
+    cleared: bool
+    cleared_at: date
+    auto_pay: bool
+    repeat: bool
+    iterations: int
+    repeat_until: date
 
     def __post_init__(self):
         if not self.due_date:
@@ -58,5 +58,3 @@ class FilterTransactionPlanningCommand:
     type: str
     cleared: bool
     auto_pay: bool
-
-
