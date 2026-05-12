@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.domain.entities import (
+from cash_flow.domain.entities import (
     Planning, 
     Budget, 
     Transaction

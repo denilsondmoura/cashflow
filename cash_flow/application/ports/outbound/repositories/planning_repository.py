@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.domain.entities import Planning
+from cash_flow.domain.entities import Planning
 from typing import Optional
 
 class PlanningRepository(ABC):

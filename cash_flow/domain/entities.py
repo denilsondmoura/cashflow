@@ -1,4 +1,4 @@
-from src.domain.objects_values import Currency
+from cash_flow.domain.objects_values import Currency
 from datetime import date, timedelta
 from dataclasses import dataclass
 import calendar
@@ -16,6 +16,8 @@ class Planning:
     budgets: list['Budget']
     transactions: list['Transaction']
     notifications: list['Notification']
+    updated_at: date
+    status: str
 
     def __post_init__(self):
         if self.end_date < date.today():
@@ -29,6 +31,7 @@ class Planning:
         return date(year, month, day)
 
     def _update_values(self):
+        self.updated_at = date.today()
         self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Currency(0)
         self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Currency(0)
         if self.total_budgeted_amount:
@@ -54,6 +57,7 @@ class Planning:
             due_today = current_date <= date.today()
             transaction_cleared = transaction.cleared or (transaction.auto_pay and due_today)
             cleared_at = date.today() if transaction_cleared else None
+            transaction_type = "inflow" if transaction.amount >= 0 else "outflow"
 
             new_transaction = Transaction(
                 id=0,
@@ -63,15 +67,17 @@ class Planning:
                 cleared=transaction_cleared,
                 cleared_at=cleared_at,
                 auto_pay=transaction.auto_pay,
-                type="inflow" if transaction.amount >= 0 else "outflow",
+                type=transaction_type,
                 planning_id=transaction.planning_id
             )
             self.transactions.append(new_transaction)
+            self.updated_at = date.today()
             
             current_date = self._add_months(current_date, 1)
             count += 1
 
     def update_transaction(self, transaction: 'Transaction'):
+        # TODO: Corrigir essa implementação, acho que não precisa de um for pra isso
         transaction_index = -1
         for i, t in enumerate(self.transactions):
             if t.id == transaction.id:
@@ -83,7 +89,12 @@ class Planning:
 
         due_today = transaction.due_date <= date.today()
         transaction_cleared = transaction.cleared or (transaction.auto_pay and due_today)
-        cleared_at = date.today() if transaction_cleared else None
+
+        if transaction.cleared:
+            cleared_at = transaction.cleared_at if transaction.cleared_at else date.today()
+        else:
+            cleared_at = None
+
         transaction_type = "inflow" if transaction.amount >= 0 else "outflow"
 
         self.transactions[transaction_index].description = transaction.description
@@ -93,6 +104,7 @@ class Planning:
         self.transactions[transaction_index].cleared = transaction_cleared
         self.transactions[transaction_index].cleared_at = cleared_at
         self.transactions[transaction_index].auto_pay = transaction.auto_pay
+        self.updated_at = date.today()
         return True
 
     def add_budget(self, budget: 'Budget'):
@@ -102,6 +114,7 @@ class Planning:
         return True
 
     def update_budget(self, budget: 'Budget'):
+        # TODO: Corrigir essa implementação, acho que não precisa de um for pra isso
         budget_index = -1
         for i, b in enumerate(self.budgets):
             if b.id == budget.id:
@@ -139,6 +152,7 @@ class Planning:
                 if transaction.auto_pay:
                     transaction.cleared = True
                     transaction.cleared_at = date.today()
+
                 else:
                     transaction.due_date = date.today()
                     self.notifications.append(
@@ -151,7 +165,8 @@ class Planning:
                             planning_id=transaction.planning_id
                         )
                     )
-                return False
+                self.updated_at = date.today()
+                
         return True
 
 

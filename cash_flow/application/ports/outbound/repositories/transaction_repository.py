@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.domain.entities import Transaction
+from cash_flow.domain.entities import Transaction
 from typing import Optional
 from datetime import date
 

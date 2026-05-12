@@ -1,4 +1,4 @@
-from src.domain.objects_values import Currency
+from cash_flow.domain.objects_values import Currency
 from datetime import date
 from dataclasses import dataclass
 
