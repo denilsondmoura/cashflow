@@ -5,8 +5,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from .repositories import DjangoPlanningRepository, DjangoBudgetRepository, DjangoTransactionRepository
-from cash_flow.application.services import PlanningService
-from cash_flow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand
+from cashflow.application.services import PlanningService
+from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand
 from datetime import datetime
 
 def get_planning_service():

@@ -1,13 +1,13 @@
 from typing import Optional, List
 from datetime import date
 from django.shortcuts import get_object_or_404
-from cash_flow.domain.entities import Planning, Budget, Transaction, Notification
-from cash_flow.domain.objects_values import Currency
+from cashflow.domain.entities import Planning, Budget, Transaction, Notification
+from cashflow.domain.objects_values import Currency
 from .models import PlanningModel, BudgetModel, TransactionModel, NotificationModel
-from cash_flow.application.ports.outbound.repositories.planning_repository import PlanningRepository
-from cash_flow.application.ports.outbound.repositories.budget_repository import BudgetRepository
-from cash_flow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
-from cash_flow.application.ports.outbound.repositories.notification_repository import NotificationRepository
+from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
+from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
+from cashflow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
+from cashflow.application.ports.outbound.repositories.notification_repository import NotificationRepository
 
 
 class DjangoPlanningRepository(PlanningRepository):

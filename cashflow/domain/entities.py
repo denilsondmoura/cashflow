@@ -1,4 +1,4 @@
-from cash_flow.domain.objects_values import Currency
+from cashflow.domain.objects_values import Currency
 from datetime import date, timedelta
 from dataclasses import dataclass
 import calendar

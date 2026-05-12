@@ -12,7 +12,7 @@ class PlanningModel(models.Model):
     status = models.CharField(max_length=50, default="active")
 
     class Meta:
-        db_table = '"cash_flow"."plannings"'
+        db_table = '"cashflow"."plannings"'
 
 
 class BudgetModel(models.Model):
@@ -22,7 +22,7 @@ class BudgetModel(models.Model):
     description = models.CharField(max_length=255)
 
     class Meta:
-        db_table = '"cash_flow"."budgets"'
+        db_table = '"cashflow"."budgets"'
 
 
 class TransactionModel(models.Model):
@@ -36,7 +36,7 @@ class TransactionModel(models.Model):
     auto_pay = models.BooleanField(default=False)
 
     class Meta:
-        db_table = '"cash_flow"."transactions"'
+        db_table = '"cashflow"."transactions"'
 
 
 class NotificationModel(models.Model):
@@ -47,4 +47,4 @@ class NotificationModel(models.Model):
     is_read = models.BooleanField(default=False)
 
     class Meta:
-        db_table = '"cash_flow"."notifications"'
+        db_table = '"cashflow"."notifications"'

@@ -1,26 +1,26 @@
 from typing import Optional
 from datetime import date
-from cash_flow.application.ports.inbound.use_cases import PlanningUseCase
-from cash_flow.application.ports.outbound.repositories.planning_repository import PlanningRepository
-from cash_flow.application.ports.outbound.repositories.budget_repository import BudgetRepository
-from cash_flow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
+from cashflow.application.ports.inbound.use_cases import PlanningUseCase
+from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
+from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
+from cashflow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
 
-from cash_flow.application.ports.inbound.commands.planning_commands import (
+from cashflow.application.ports.inbound.commands.planning_commands import (
     CreatePlanningCommand,
     UpdatePlanningCommand
 )
-from cash_flow.application.ports.inbound.commands.budget_commands import (
+from cashflow.application.ports.inbound.commands.budget_commands import (
     CreateBudgetPlanningCommand,
     UpdateBudgetPlanningCommand
 )
-from cash_flow.application.ports.inbound.commands.transaction_commands import (
+from cashflow.application.ports.inbound.commands.transaction_commands import (
     CreateRecurringTransactionPlanningCommand,
     UpdateTransactionPlanningCommand,
     FilterTransactionPlanningCommand
 )
 
-from cash_flow.domain.entities import Planning, Budget, Transaction
-from cash_flow.domain.objects_values import Currency
+from cashflow.domain.entities import Planning, Budget, Transaction
+from cashflow.domain.objects_values import Currency
 
 
 class PlanningService(PlanningUseCase):

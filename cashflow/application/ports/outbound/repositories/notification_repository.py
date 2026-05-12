@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from cash_flow.domain.entities import Notification
+from cashflow.domain.entities import Notification
 from typing import Optional
 
 class NotificationRepository(ABC):

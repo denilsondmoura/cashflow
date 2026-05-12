@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from cash_flow.infrastructure.django_cash_flow.urls import urlpatterns as cash_flow_urls
+from cashflow.infrastructure.urls import urlpatterns as cash_flow_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('cash_flow/', include(cash_flow_urls)),
+    path('cashflow/', include(cash_flow_urls)),
 ]

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from cash_flow.domain.entities import Budget
+from cashflow.domain.entities import Budget
 from typing import Optional
 
 class BudgetRepository(ABC):
