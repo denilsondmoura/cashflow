@@ -1,7 +1,7 @@
 from typing import Optional, List
 from datetime import date
 from django.shortcuts import get_object_or_404
-from cashflow.domain.entities import Planning, Budget, Transaction, Notification
+from cashflow.domain.entities import Planning, Budget, Transaction, Notification, User
 from cashflow.domain.objects_values import Currency
 from .models import PlanningModel, BudgetModel, TransactionModel, NotificationModel
 from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
@@ -12,33 +12,77 @@ from cashflow.application.ports.outbound.repositories.notification_repository im
 
 class DjangoPlanningRepository(PlanningRepository):
     def _to_entity(self, model: PlanningModel) -> Planning:
+        created_by_user = User(
+            id=model.created_by.id,
+            username=model.created_by.username,
+            first_name=model.created_by.first_name,
+            last_name=model.created_by.last_name,
+            email=model.created_by.email,
+            plannings=[]
+        ) if model.created_by else None
+
+        updated_by_user = User(
+            id=model.updated_by.id,
+            username=model.updated_by.username,
+            first_name=model.updated_by.first_name,
+            last_name=model.updated_by.last_name,
+            email=model.updated_by.email,
+            plannings=[]
+        ) if model.updated_by else None
+
         return Planning(
             id=model.id,
             name=model.name,
-            color=model.color,
             end_date=model.end_date,
+            start_billing_cycle=model.start_billing_cycle,
             average_daily_expenditure=Currency(model.average_daily_expenditure),
             total_budgeted_amount=Currency(model.total_budgeted_amount),
             total_balance_amount=Currency(model.total_balance_amount),
             budgets=[DjangoBudgetRepository._to_entity(b) for b in model.budgets.all()],
             transactions=[DjangoTransactionRepository._to_entity(t) for t in model.transactions.all()],
             notifications=[DjangoNotificationRepository._to_entity(n) for n in model.notifications.all()],
+            created_at=model.created_at,
             updated_at=model.updated_at,
+            created_by=created_by_user,
+            updated_by=updated_by_user,
             status=model.status
         )
 
     def save(self, planning: Planning) -> Planning:
+        from auth.infrastructure.models import Profile
+
+        def get_profile(user_data):
+            if not user_data:
+                return None
+            if isinstance(user_data, str):
+                return Profile.objects.filter(username=user_data).first()
+            if hasattr(user_data, 'username'):
+                return Profile.objects.filter(username=user_data.username).first()
+            if hasattr(user_data, 'id'):
+                return Profile.objects.filter(id=user_data.id).first()
+            return None
+
+        created_profile = get_profile(planning.created_by)
+        updated_profile = get_profile(planning.updated_by)
+
         data = {
             "name": planning.name,
-            "color": planning.color,
             "end_date": planning.end_date,
+            "start_billing_cycle": planning.start_billing_cycle,
             "average_daily_expenditure": planning.average_daily_expenditure.value,
             "total_budgeted_amount": planning.total_budgeted_amount.value,
             "total_balance_amount": planning.total_balance_amount.value,
             "status": planning.status
         }
-        
+
+        if created_profile:
+            data["created_by"] = created_profile
+        if updated_profile:
+            data["updated_by"] = updated_profile
+
         if planning.id == 0:
+            if "updated_by" not in data and created_profile:
+                data["updated_by"] = created_profile
             model = PlanningModel.objects.create(**data)
         else:
             model = PlanningModel.objects.get(id=planning.id)

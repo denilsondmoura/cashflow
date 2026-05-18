@@ -19,21 +19,25 @@ class Planning:
     id: int
     name: str
     end_date: date
+    start_billing_cycle: int
     average_daily_expenditure: Currency
     total_budgeted_amount: Currency
     total_balance_amount: Currency
     budgets: list['Budget']
     transactions: list['Transaction']
     notifications: list['Notification']
-    created_at: date
-    updated_at: date
-    created_by: User
-    updated_by: User
+    created_at: date = None
+    updated_at: date = None
+    created_by: User = None
+    updated_by: User = None
     status: str = "updated"
 
     def __post_init__(self):
         if self.end_date < date.today():
             raise ValueError("Data final do planejamento deve ser maior que a data atual!") 
+
+        if self.start_billing_cycle < 1 or self.start_billing_cycle > 28:
+            raise ValueError("O dia de início do ciclo deve estar entre 1 e 28!") 
 
     def _add_months(self, sourcedate, months):
         month = sourcedate.month - 1 + months
@@ -189,10 +193,10 @@ class Budget:
     limit_amount: Currency
     description: str
     planning_id: int
-    created_at: date
-    updated_at: date
-    created_by: User
-    updated_by: User
+    created_at: date = None
+    updated_at: date = None
+    created_by: User = None
+    updated_by: User = None
 
     def __post_init__(self):
         if not self.current_balance:
@@ -216,10 +220,10 @@ class Transaction:
     cleared_at: date
     auto_pay: bool
     planning_id: int
-    created_at: date
-    updated_at: date
-    created_by: User
-    updated_by: User
+    created_at: date = None
+    updated_at: date = None
+    created_by: User = None
+    updated_by: User = None
 
     def __post_init__(self):
         if not self.amount:
@@ -247,9 +251,9 @@ class Notification:
     related_transaction_id: int
     is_read: bool
     planning_id: int
-    created_at: date
-    updated_at: date
-    created_by: User
-    updated_by: User
+    created_at: date = None
+    updated_at: date = None
+    created_by: User = None
+    updated_by: User = None
 
     

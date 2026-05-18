@@ -38,14 +38,15 @@ class PlanningService(PlanningUseCase):
         planning = Planning(
             id=0,  # Repo will assign ID
             name=command.name,
-            color=command.color,
             end_date=command.end_date,
             average_daily_expenditure=Currency(0),
             total_budgeted_amount=Currency(0),
             total_balance_amount=Currency(0),
             budgets=[],
             transactions=[],
-            notifications=[]
+            notifications=[],
+            start_billing_cycle=command.start_billing_cycle,
+            created_by=command.created_by
         )
         return self.planning_repo.save(planning)
 
@@ -55,8 +56,9 @@ class PlanningService(PlanningUseCase):
             raise ValueError("Planejamento não encontrado!")
         
         planning.name = command.name
-        planning.color = command.color
         planning.end_date = command.end_date
+        planning.start_billing_cycle = command.start_billing_cycle
+        planning.updated_by = command.updated_by
         
         return self.planning_repo.save(planning)
 

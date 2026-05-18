@@ -19,7 +19,7 @@
             <div class="card h-100 hover-lift">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="planning-badge px-2 py-1 rounded small fw-bold" style="background-color: {{ planning.color }}20; color: {{ planning.color }}; border: 1px solid {{ planning.color }}40;">
+                        <div class="planning-badge px-2 py-1 rounded small fw-bold" style="background-color: #002147; color: white; border: 1px solid #002147;">
                             {{ planning.status|upper }}
                         </div>
                         <div class="dropdown">
@@ -27,26 +27,73 @@
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Editar</a></li>
-                                <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Excluir</a></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editPlanningModal-{{ planning.id }}"><i class="fas fa-edit me-2"></i>Editar</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deletePlanningModal-{{ planning.id }}"><i class="fas fa-trash me-2"></i>Excluir</a></li>
                             </ul>
                         </div>
                     </div>
-                    <h3 class="h5 fw-bold mb-2">{{ planning.name }}</h3>
-                    <p class="text-muted small mb-4">
-                        <i class="far fa-calendar-alt me-2"></i>Término em: {{ planning.end_date|date:"d/m/Y" }}
+                    <h3 class="h5 fw-bold mb-3">{{ planning.name }}</h3>
+                    <p class="text-muted small pb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Término em: {{ planning.end_date|date:"d/m/Y" }}
                     </p>
-                    
-                    <div class="progress mb-2" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: 0%; background-color: {{ planning.color }};" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="d-flex justify-content-between small">
-                        <span class="text-muted">Progresso</span>
-                        <span class="fw-bold text-navy">0%</span>
-                    </div>
+                    <p class="text-muted small pb-0">
+                        <i class="fas fa-calendar-day me-2"></i>Início do Ciclo de Faturamento: Dia {{ planning.start_billing_cycle }}
+                    </p>
                 </div>
                 <div class="card-footer bg-transparent border-top-0 p-4 pt-0">
                     <a href="#" class="btn btn-outline-primary btn-sm w-100 fw-bold">Ver Detalhes</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Editar Planejamento -->
+        <div class="modal fade" id="editPlanningModal-{{ planning.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header border-bottom-0 p-4 pb-0">
+                        <h5 class="modal-title fw-bold text-navy">Editar Planejamento</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <form method="POST" action="{% url 'planning-update' planning.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name-{{ planning.id }}" class="form-label text-navy fw-bold small">Nome do Planejamento</label>
+                                <input type="text" name="name" id="name-{{ planning.id }}" class="form-control" value="{{ planning.name }}" required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="end_date-{{ planning.id }}" class="form-label text-navy fw-bold small">Data de Término do Planejamento</label>
+                                <input type="date" name="end_date" id="end_date-{{ planning.id }}" class="form-control" value="{{ planning.end_date|date:'Y-m-d' }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="start_billing_cycle-{{ planning.id }}" class="form-label text-navy fw-bold small">Dia de Início do Ciclo de Faturamento</label>
+                                <input type="number" name="start_billing_cycle" id="start_billing_cycle-{{ planning.id }}" class="form-control" min="1" max="28" value="{{ planning.start_billing_cycle }}" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Salvar Alterações</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Exclusão -->
+        <div class="modal fade" id="deletePlanningModal-{{ planning.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header border-bottom-0 p-4 pb-0">
+                        <h5 class="modal-title fw-bold text-danger">Excluir Planejamento</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-muted">Tem certeza que deseja excluir o planejamento <strong>"{{ planning.name }}"</strong>? Esta ação não pode ser desfeita.</p>
+                        <form method="POST" action="{% url 'planning-delete' planning.id %}">
+                            {% csrf_token %}
+                            <div class="d-flex gap-3 mt-4">
+                                <button type="button" class="btn btn-light w-50 py-2 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-danger w-50 py-2 fw-bold shadow-sm">Confirmar Exclusão</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -76,15 +123,15 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="name" class="form-label text-navy fw-bold small">Nome do Planejamento</label>
-                        <input type="text" name="name" id="name" class="form-control" placeholder="Ex: Viagem 2026" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="color" class="form-label text-navy fw-bold small">Cor de Identificação</label>
-                        <input type="color" name="color" id="color" class="form-control form-control-color w-100" value="#002147">
+                        <input type="text" name="name" id="name" class="form-control" placeholder="Ex: Finanças Pessoais" required>
                     </div>
                     <div class="mb-4">
-                        <label for="end_date" class="form-label text-navy fw-bold small">Data de Término</label>
+                        <label for="end_date" class="form-label text-navy fw-bold small">Data de Término do Planejamento</label>
                         <input type="date" name="end_date" id="end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="start_billing_cycle" class="form-label text-navy fw-bold small">Dia de Início do Ciclo de Faturamento</label>
+                        <input type="number" name="start_billing_cycle" id="start_billing_cycle" class="form-control" min="1" max="28" value="1" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Criar Agora</button>
                 </form>

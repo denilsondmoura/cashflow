@@ -15,10 +15,11 @@ class BaseModel(models.Model):
 class PlanningModel(BaseModel):
     name = models.CharField(max_length=255)
     end_date = models.DateField()
+    start_billing_cycle = models.IntegerField(default=1)
     average_daily_expenditure = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     total_budgeted_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     total_balance_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    status = models.CharField(max_length=50, default="active")
+    status = models.CharField(max_length=50, default="updated")
     users = models.ManyToManyField(Profile, related_name='plannings')
 
     class Meta:

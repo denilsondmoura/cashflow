@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .repositories import DjangoPlanningRepository, DjangoBudgetRepository, DjangoTransactionRepository
 from cashflow.application.services import PlanningService
-from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand
+from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand, UpdatePlanningCommand
 from datetime import datetime
 
 def get_planning_service():
@@ -28,17 +28,46 @@ class PlanningView(LoginRequiredMixin, View):
         service = get_planning_service()
         
         name = request.POST.get('name')
-        color = request.POST.get('color')
+        start_billing_cycle = int(request.POST.get('start_billing_cycle', 1))
         end_date_str = request.POST.get('end_date')
 
         command = CreatePlanningCommand(
             name=name,
-            color=color,
-            end_date=datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            end_date=datetime.strptime(end_date_str, '%Y-%m-%d').date(),
+            start_billing_cycle=start_billing_cycle,
+            created_by=request.user.username
         )
         service.create_planning(command)
         
         return redirect('planning-list-create')
+
+
+class PlanningUpdateView(LoginRequiredMixin, View):
+    def post(self, request, id):
+        service = get_planning_service()
+        
+        name = request.POST.get('name')
+        start_billing_cycle = int(request.POST.get('start_billing_cycle', 1))
+        end_date_str = request.POST.get('end_date')
+
+        command = UpdatePlanningCommand(
+            id=id,
+            name=name,
+            end_date=datetime.strptime(end_date_str, '%Y-%m-%d').date(),
+            start_billing_cycle=start_billing_cycle,
+            updated_by=request.user.username
+        )
+        service.update_planning(command)
+        
+        return redirect('planning-list-create')
+
+
+class PlanningDeleteView(LoginRequiredMixin, View):
+    def post(self, request, id):
+        service = get_planning_service()
+        service.delete_planning(id)
+        return redirect('planning-list-create')
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BudgetView(View):
