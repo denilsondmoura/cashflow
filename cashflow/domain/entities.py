@@ -1,14 +1,23 @@
 from cashflow.domain.objects_values import Currency
 from datetime import date, timedelta
 from dataclasses import dataclass
+from typing import Optional
 import calendar
+
+@dataclass
+class User:
+    id: int
+    username: str
+    first_name: str
+    last_name: str
+    email: str
+    plannings: list['Planning']
 
 
 @dataclass
 class Planning:
     id: int
     name: str
-    color: str
     end_date: date
     average_daily_expenditure: Currency
     total_budgeted_amount: Currency
@@ -16,8 +25,11 @@ class Planning:
     budgets: list['Budget']
     transactions: list['Transaction']
     notifications: list['Notification']
+    created_at: date
     updated_at: date
-    status: str
+    created_by: User
+    updated_by: User
+    status: str = "updated"
 
     def __post_init__(self):
         if self.end_date < date.today():
@@ -177,6 +189,10 @@ class Budget:
     limit_amount: Currency
     description: str
     planning_id: int
+    created_at: date
+    updated_at: date
+    created_by: User
+    updated_by: User
 
     def __post_init__(self):
         if not self.current_balance:
@@ -200,6 +216,10 @@ class Transaction:
     cleared_at: date
     auto_pay: bool
     planning_id: int
+    created_at: date
+    updated_at: date
+    created_by: User
+    updated_by: User
 
     def __post_init__(self):
         if not self.amount:
@@ -227,3 +247,9 @@ class Notification:
     related_transaction_id: int
     is_read: bool
     planning_id: int
+    created_at: date
+    updated_at: date
+    created_by: User
+    updated_by: User
+
+    

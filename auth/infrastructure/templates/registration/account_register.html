@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 d-flex flex-column justify-content-center">
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <section class="card shadow-sm border-0" aria-labelledby="registerHeading">
+        <div class="card-header py-4">
+          <h1 id="registerHeading" class="h3 mb-0 text-center fw-bold">Crie sua Conta</h1>
+          <p class="text-center mb-0 mt-2 small opacity-75">Junte-se ao Cashflow e controle suas finanças</p>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+          <form 
+            method="post" 
+            enctype="multipart/form-data" 
+            aria-label="Formulário de cadastro"
+            autocomplete="off"
+            >
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger rounded-3" role="alert">
+              {% for error in form.non_field_errors %}
+              {{ error }}
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Seção 1: Conta -->
+            <div class="mb-5">
+              <h2 class="h6 text-uppercase fw-bold text-navy border-bottom pb-2 mb-4">Informações de Acesso</h2>
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <label for="id_username" class="form-label text-navy fw-bold small">Nome de Usuário *</label>
+                  <input type="text" name="username" id="id_username"
+                    class="form-control form-control-lg fs-6 {% if form.username.errors %}is-invalid{% endif %}" required maxlength="150"
+                    placeholder="Ex: joao_silva">
+                  <div class="form-text small">Mínimo 150 caracteres. Letras e números apenas.</div>
+                  {% for error in form.username.errors %}
+                  <div class="invalid-feedback" role="alert">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-md-6">
+                  <label for="id_email" class="form-label text-navy fw-bold small">E-mail *</label>
+                  <input type="email" name="email" id="id_email"
+                    class="form-control form-control-lg fs-6 {% if form.email.errors %}is-invalid{% endif %}" required
+                    placeholder="seu@email.com">
+                  {% for error in form.email.errors %}
+                  <div class="invalid-feedback" role="alert">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Seção 2: Perfil -->
+            <div class="mb-5">
+              <h2 class="h6 text-uppercase fw-bold text-navy border-bottom pb-2 mb-4">Personalização</h2>
+              <div class="row g-4">
+                <div class="col-md-5">
+                  <label for="id_foto" class="form-label text-navy fw-bold small">Foto de Perfil</label>
+                  <div class="bg-light rounded-3 p-3 text-center border">
+                    <input type="file" name="foto" id="id_foto" class="form-control form-control-sm" accept="image/*">
+                    <div class="form-text mt-2 small">JPG, PNG ou GIF (máx. 5MB)</div>
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <label for="id_descricao_perfil" class="form-label text-navy fw-bold small">Sua Descrição</label>
+                  <textarea name="descricao_perfil" id="id_descricao_perfil" class="form-control" rows="4"
+                    maxlength="500" placeholder="Conte-nos um pouco sobre você..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Seção 3: Segurança -->
+            <div class="mb-5">
+              <h2 class="h6 text-uppercase fw-bold text-navy border-bottom pb-2 mb-4">Segurança</h2>
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <label for="id_password1" class="form-label text-navy fw-bold small">Senha *</label>
+                  <input type="password" name="password1" id="id_password1"
+                    class="form-control form-control-lg fs-6 {% if form.password1.errors %}is-invalid{% endif %}" required>
+                  <div class="form-text small">Mínimo 8 caracteres.</div>
+                  {% for error in form.password1.errors %}
+                  <div class="invalid-feedback" role="alert">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-md-6">
+                  <label for="id_password2" class="form-label text-navy fw-bold small">Confirmar Senha *</label>
+                  <input type="password" name="password2" id="id_password2"
+                    class="form-control form-control-lg fs-6 {% if form.password2.errors %}is-invalid{% endif %}" required>
+                  {% for error in form.password2.errors %}
+                  <div class="invalid-feedback" role="alert">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <div class="d-grid gap-3">
+              <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold">
+                Finalizar Cadastro
+              </button>
+              <p class="text-center mb-0 small">
+                Já possui uma conta? 
+                <a href="{% url 'accounts:login' %}" class="text-navy text-decoration-none fw-bold shadow-hover">Faça login</a>
+              </p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

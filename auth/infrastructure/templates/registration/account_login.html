@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 d-flex flex-column justify-content-center">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-5">
+      <!-- Card de Login -->
+      <section class="card shadow-sm border-0" aria-labelledby="loginHeading">
+        <div class="card-header py-4">
+          <h1 id="loginHeading" class="h3 mb-0 text-center fw-bold">Bem-vindo</h1>
+          <p class="text-center mb-0 mt-2 small opacity-75">Acesse sua conta para continuar</p>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+          {% if form.errors %}
+          <div class="alert alert-danger rounded-3 small" role="alert">
+            Nome de usuário ou senha incorretos.
+          </div>
+          {% endif %}
+
+          <form method="post" aria-label="Formulário de login">
+            {% csrf_token %}
+
+            <!-- Campo E-mail -->
+            <div class="mb-4">
+              <label for="username" class="form-label text-navy fw-bold small">Nome de usuário</label>
+              <input type="text" name="username" id="username" class="form-control form-control-lg fs-6" required autocomplete="email"
+                placeholder="seu@email.com">
+            </div>
+
+            <!-- Campo Senha -->
+            <div class="mb-2">
+              <label for="id_password" class="form-label text-navy fw-bold small">Senha</label>
+              <input type="password" name="password" id="id_password" class="form-control form-control-lg fs-6" required
+                autocomplete="current-password" placeholder="••••••••">
+            </div>
+
+            <!-- Link Esqueci a Senha -->
+            <div class="text-end mb-4">
+              <a href="{% url 'accounts:password_reset' %}" class="text-navy text-decoration-none small fw-bold" aria-label="Recuperar senha">
+                Esqueceu a senha?
+              </a>
+            </div>
+
+            <!-- Botão de Login -->
+            <div class="d-grid gap-3">
+              <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold">
+                Entrar
+              </button>
+              
+              <p class="text-center mb-0 small mt-2">
+                Não tem uma conta? 
+                <a href="{% url 'accounts:register' %}" class="text-navy text-decoration-none fw-bold">Cadastre-se</a>
+              </p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

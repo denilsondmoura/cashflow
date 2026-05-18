@@ -1,8 +1,10 @@
 import json
 from django.http import JsonResponse
+from django.shortcuts import render, redirect
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .repositories import DjangoPlanningRepository, DjangoBudgetRepository, DjangoTransactionRepository
 from cashflow.application.services import PlanningService
@@ -16,36 +18,27 @@ def get_planning_service():
         transaction_repo=DjangoTransactionRepository()
     )
 
-@method_decorator(csrf_exempt, name='dispatch')
-class PlanningView(View):
+class PlanningView(LoginRequiredMixin, View):
     def get(self, request):
         service = get_planning_service()
         plannings = service.list_plannings()
-        data = []
-        if plannings:
-            for p in plannings:
-                data.append({
-                    "id": p.id,
-                    "name": p.name,
-                    "color": p.color,
-                    "end_date": p.end_date.isoformat(),
-                    "status": p.status
-                })
-        return JsonResponse(data, safe=False)
+        return render(request, 'planning_list.html', {'plannings': plannings})
 
     def post(self, request):
         service = get_planning_service()
-        body = json.loads(request.body)
+        
+        name = request.POST.get('name')
+        color = request.POST.get('color')
+        end_date_str = request.POST.get('end_date')
+
         command = CreatePlanningCommand(
-            name=body['name'],
-            color=body['color'],
-            end_date=datetime.strptime(body['end_date'], '%Y-%m-%d').date()
+            name=name,
+            color=color,
+            end_date=datetime.strptime(end_date_str, '%Y-%m-%d').date()
         )
-        planning = service.create_planning(command)
-        return JsonResponse({
-            "id": planning.id,
-            "name": planning.name
-        }, status=201)
+        service.create_planning(command)
+        
+        return redirect('planning-list-create')
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BudgetView(View):
