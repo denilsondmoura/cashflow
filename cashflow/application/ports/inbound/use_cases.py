@@ -38,7 +38,7 @@ class PlanningUseCase(ABC):
         pass
 
     @abstractmethod
-    def list_plannings(self) -> Optional[list[Planning]]:
+    def list_plannings(self, username: Optional[str] = None) -> Optional[list[Planning]]:
         pass
 
     @abstractmethod

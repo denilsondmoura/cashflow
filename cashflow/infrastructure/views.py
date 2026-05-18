@@ -21,7 +21,7 @@ def get_planning_service():
 class PlanningView(LoginRequiredMixin, View):
     def get(self, request):
         service = get_planning_service()
-        plannings = service.list_plannings()
+        plannings = service.list_plannings(username=request.user.username)
         return render(request, 'planning_list.html', {'plannings': plannings})
 
     def post(self, request):
@@ -67,6 +67,15 @@ class PlanningDeleteView(LoginRequiredMixin, View):
         service = get_planning_service()
         service.delete_planning(id)
         return redirect('planning-list-create')
+
+
+class PlanningDetailsView(LoginRequiredMixin, View):
+    def get(self, request, id):
+        service = get_planning_service()
+        planning = service.planning_repo.find_by_id(id)
+        if not planning:
+            return redirect('planning-list-create')
+        return render(request, 'planning_details.html', {'planning': planning})
 
 
 @method_decorator(csrf_exempt, name='dispatch')

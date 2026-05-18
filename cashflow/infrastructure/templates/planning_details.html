@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header com botão para voltar -->
+    <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'planning-list-create' %}" class="btn btn-link text-navy p-0 me-3 fs-5" aria-label="Voltar para a lista">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="h2 fw-bold text-navy mb-1">{{ planning.name }}</h1>
+            <p class="text-muted mb-0 small d-flex flex-wrap gap-3">
+                <span><i class="far fa-calendar-alt me-1"></i>Término: {{ planning.end_date|date:"d/m/Y" }}</span>
+                <span><i class="far fa-calendar-check me-1"></i>Ciclo de Faturamento: Dia {{ planning.start_billing_cycle }}</span>
+                <span><i class="far fa-clock me-1"></i>Criado em: {{ planning.created_at|date:"d/m/Y" }}</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Seção de Cartões (Menu Principal) -->
+    <div class="row g-4 justify-content-center mt-4">
+        <!-- ANALISE DE GASTOS ANTERIORES -->
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <div class="menu-icon-wrapper mb-3 text-navy">
+                            <i class="fas fa-history fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-navy fs-6 mb-0 text-uppercase tracking-wider">Análise de Gastos Anteriores</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- MOVIMENTAÇÕES PREVISTAS -->
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <div class="menu-icon-wrapper mb-3 text-navy">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-navy fs-6 mb-0 text-uppercase tracking-wider">Movimentações Previstas</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- FLUXO DE CAIXA -->
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <div class="menu-icon-wrapper mb-3 text-navy">
+                            <i class="fas fa-exchange-alt fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-navy fs-6 mb-0 text-uppercase tracking-wider">Fluxo de Caixa</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- LISTA DE DESEJOS -->
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <div class="menu-icon-wrapper mb-3 text-navy">
+                            <i class="fas fa-heart fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-navy fs-6 mb-0 text-uppercase tracking-wider">Lista de Desejos</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: #ffffff;
+        border-radius: 12px;
+        min-height: 180px;
+    }
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 33, 71, 0.08) !important;
+        background-color: var(--primary-navy);
+    }
+    .hover-lift:hover .text-navy {
+        color: #ffffff !important;
+    }
+    .menu-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(0, 33, 71, 0.04);
+        transition: background-color 0.3s ease;
+    }
+    .hover-lift:hover .menu-icon-wrapper {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .tracking-wider {
+        letter-spacing: 0.5px;
+        line-height: 1.4;
+    }
+    .btn-link:hover {
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}

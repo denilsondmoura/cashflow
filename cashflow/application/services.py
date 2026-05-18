@@ -65,8 +65,8 @@ class PlanningService(PlanningUseCase):
     def delete_planning(self, id: int) -> bool:
         return self.planning_repo.delete(id)
 
-    def list_plannings(self) -> Optional[list[Planning]]:
-        return self.planning_repo.list_all(page=1, page_size=100)
+    def list_plannings(self, username: Optional[str] = None) -> Optional[list[Planning]]:
+        return self.planning_repo.list_all(page=1, page_size=100, username=username)
 
     def add_budget_to_planning(self, command: CreateBudgetPlanningCommand) -> bool:
         planning = self.planning_repo.find_by_id(command.planning_id)

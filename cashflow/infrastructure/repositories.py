@@ -84,6 +84,8 @@ class DjangoPlanningRepository(PlanningRepository):
             if "updated_by" not in data and created_profile:
                 data["updated_by"] = created_profile
             model = PlanningModel.objects.create(**data)
+            if created_profile:
+                model.users.add(created_profile)
         else:
             model = PlanningModel.objects.get(id=planning.id)
             for key, value in data.items():
@@ -99,10 +101,13 @@ class DjangoPlanningRepository(PlanningRepository):
         except PlanningModel.DoesNotExist:
             return None
 
-    def list_all(self, page: int, page_size: int) -> Optional[List[Planning]]:
+    def list_all(self, page: int, page_size: int, username: Optional[str] = None) -> Optional[List[Planning]]:
         start = (page - 1) * page_size
         end = start + page_size
-        models = PlanningModel.objects.all()[start:end]
+        queryset = PlanningModel.objects.all()
+        if username:
+            queryset = queryset.filter(users__username=username)
+        models = queryset[start:end]
         return [self._to_entity(m) for m in models]
 
     def delete(self, id: int) -> bool:

@@ -12,7 +12,7 @@ class PlanningRepository(ABC):
         pass
     
     @abstractmethod
-    def list_all(self, page: int, page_size: int) -> Optional[list[Planning]]:
+    def list_all(self, page: int, page_size: int, username: Optional[str] = None) -> Optional[list[Planning]]:
         pass
 
     @abstractmethod 
