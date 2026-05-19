@@ -72,3 +72,7 @@ class PlanningUseCase(ABC):
     @abstractmethod
     def filter_transactions_in_planning(self, command: FilterTransactionPlanningCommand) -> Optional[list[Transaction]]:
         pass
+
+    @abstractmethod
+    def list_grouped_transactions(self, planning_id: int) -> dict:
+        pass

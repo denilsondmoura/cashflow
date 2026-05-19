@@ -4,6 +4,7 @@ from cashflow.application.ports.inbound.use_cases import PlanningUseCase
 from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
 from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
 from cashflow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
+from cashflow.application.ports.outbound.presenters import TransactionGroupPresenter
 
 from cashflow.application.ports.inbound.commands.planning_commands import (
     CreatePlanningCommand,
@@ -28,11 +29,13 @@ class PlanningService(PlanningUseCase):
         self, 
         planning_repo: PlanningRepository,
         budget_repo: BudgetRepository,
-        transaction_repo: TransactionRepository
+        transaction_repo: TransactionRepository,
+        presenter: Optional[TransactionGroupPresenter] = None
     ):
         self.planning_repo = planning_repo
         self.budget_repo = budget_repo
         self.transaction_repo = transaction_repo
+        self.presenter = presenter
 
     def create_planning(self, command: CreatePlanningCommand) -> Planning:
         planning = Planning(
@@ -189,3 +192,12 @@ class PlanningService(PlanningUseCase):
             cleared=command.cleared,
             auto_pay=command.auto_pay
         )
+
+    def list_grouped_transactions(self, planning_id: int) -> dict:
+        planning = self.planning_repo.find_by_id(planning_id)
+        if not planning:
+            raise ValueError("Planejamento não encontrado!")
+        if not self.presenter:
+            raise ValueError("Presenter não configurado no serviço de planejamento!")
+        transactions = planning.transactions if planning.transactions else []
+        return self.presenter.group_transactions(transactions)

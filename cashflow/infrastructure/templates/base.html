@@ -286,6 +286,15 @@
                 });
             {% endfor %}
         {% endif %}
+
+        // Auto-focus no primeiro input quando qualquer modal é aberto
+        document.addEventListener('shown.bs.modal', function (event) {
+            const modal = event.target;
+            const firstInput = modal.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        });
     });
     </script>
 </body>

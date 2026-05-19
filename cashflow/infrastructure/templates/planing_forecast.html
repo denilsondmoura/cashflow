@@ -175,7 +175,9 @@
                     <p class="text-muted small text-uppercase mb-3 fw-bold tracking-wide" style="font-size: 0.72rem; line-height: 1.4; min-height: 40px; opacity: 0.75;">
                         Faça orçamento mensal para categorias de gastos baseado no seu histórico de gastos. Ex: supermercado - R$ 1.100,00; lanches - R$ 300,00, etc
                     </p>
-                    <button class="btn btn-outline-navy btn-sm rounded-pill px-3 fw-bold mb-4">+ NOVO</button>
+                    <button class="btn btn-outline-navy btn-sm rounded-pill px-3 fw-bold mb-4" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#newBudgetModal">+ NOVO</button>
                 </div>
 
                 <!-- Budget list -->
@@ -196,9 +198,21 @@
                                 </thead>
                                 <tbody>
                                     {% for budget in budgets %}
-                                    <tr>
+                                    <tr {% if budget.id %}
+                                            style="cursor: pointer;"
+                                            class="budget-row"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editBudgetModal"
+                                            data-id="{{ budget.id }}"
+                                            data-description="{{ budget.description }}"
+                                            data-amount="{{ budget.amount_raw }}"
+                                        {% endif %}>
                                         <td class="small text-navy py-1">{{ budget.description }}</td>
                                         <td class="small text-navy py-1 text-end">{{ budget.amount_formatted }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-muted small text-center py-2">Nenhum orçamento cadastrado.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -364,7 +378,108 @@
         </div>
     </div>
 </div>
+</div>
 
+<!-- Modal para Novo Orçamento -->
+<div class="modal fade" id="newBudgetModal" tabindex="-1" aria-labelledby="newBudgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-navy" id="newBudgetModalLabel">Novo Orçamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'budget-create' planning.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="budget-description" class="form-label small fw-bold text-navy">Descrição</label>
+                        <input type="text" class="form-control" id="budget-description" name="description" placeholder="Ex: Supermercado, Combustível..." required>
+                    </div>
+
+                    <!-- Valor limite -->
+                    <div class="mb-3">
+                        <label for="budget-amount" class="form-label small fw-bold text-navy">Valor Limite</label>
+                        <div class="input-group">
+                            <span class="input-group-text small bg-light text-muted">R$</span>
+                            <input type="text" class="form-control" id="budget-amount" name="amount" placeholder="0,00" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-bold text-white">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Orçamento -->
+<div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-navy" id="editBudgetModalLabel">Editar Orçamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Edit Form -->
+                <form id="editBudgetForm" method="POST">
+                    {% csrf_token %}
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="edit-budget-description" class="form-label small fw-bold text-navy">Descrição</label>
+                        <input type="text" class="form-control" id="edit-budget-description" name="description" required>
+                    </div>
+                    
+                    <!-- Valor Limite -->
+                    <div class="mb-3">
+                        <label for="edit-budget-amount" class="form-label small fw-bold text-navy">Valor Limite</label>
+                        <div class="input-group">
+                            <span class="input-group-text small bg-light text-muted">R$</span>
+                            <input type="text" class="form-control" id="edit-budget-amount" name="amount" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <button type="button" class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold" id="btn-delete-budget">
+                            <i class="fas fa-trash-alt me-1"></i> Excluir
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-bold me-2" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-bold text-white">Salvar</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Hidden Delete Form -->
+                <form id="deleteBudgetForm" method="POST" style="display: none;">
+                    {% csrf_token %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão do Orçamento -->
+<div class="modal fade" id="deleteBudgetConfirmModal" tabindex="-1" aria-labelledby="deleteBudgetConfirmModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold text-danger" id="deleteBudgetConfirmModalLabel">Confirmar Exclusão</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="small text-muted mb-0">Tem certeza de que deseja excluir este orçamento? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-light btn-sm px-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm px-3 rounded-pill fw-bold" id="btn-confirm-delete-budget">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Script de manipulação do modal -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -548,6 +663,91 @@
                 }
             });
         }
+
+        // Máscara de valor monetário para orçamento
+        const budgetAmountInput = document.getElementById('budget-amount');
+        if (budgetAmountInput) {
+            budgetAmountInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/\D/g, "");
+                if (value === "") {
+                    this.value = "";
+                    return;
+                }
+                value = (parseFloat(value) / 100).toFixed(2);
+                let parts = value.split(".");
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                this.value = parts.join(",");
+            });
+        }
+
+        // Configuração do modal de edição de orçamento
+        const editBudgetModal = document.getElementById('editBudgetModal');
+        if (editBudgetModal) {
+            editBudgetModal.addEventListener('show.bs.modal', function (event) {
+                const row = event.relatedTarget;
+                const id = row.getAttribute('data-id');
+                const description = row.getAttribute('data-description');
+                const amount = row.getAttribute('data-amount');
+                
+                // Configurar forms
+                const editForm = editBudgetModal.querySelector('#editBudgetForm');
+                const deleteForm = editBudgetModal.querySelector('#deleteBudgetForm');
+                if (editForm) {
+                    editForm.action = `/budget/${id}/edit/`;
+                }
+                if (deleteForm) {
+                    deleteForm.action = `/budget/${id}/delete/`;
+                }
+                
+                // Preencher campos
+                const descInput = editBudgetModal.querySelector('#edit-budget-description');
+                if (descInput) descInput.value = description;
+                
+                const amountInput = editBudgetModal.querySelector('#edit-budget-amount');
+                if (amountInput) amountInput.value = amount;
+            });
+        }
+
+        // Aplicar máscara no campo de valor do modal de edição de orçamento
+        const editBudgetAmountInput = document.getElementById('edit-budget-amount');
+        if (editBudgetAmountInput) {
+            editBudgetAmountInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/\D/g, "");
+                if (value === "") {
+                    this.value = "";
+                    return;
+                }
+                value = (parseFloat(value) / 100).toFixed(2);
+                let parts = value.split(".");
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                this.value = parts.join(",");
+            });
+        }
+
+        // Lógica de exclusão com confirmação modal de orçamento
+        const btnDeleteBudget = document.getElementById('btn-delete-budget');
+        const deleteBudgetConfirmModal = new bootstrap.Modal(document.getElementById('deleteBudgetConfirmModal'));
+        if (btnDeleteBudget) {
+            btnDeleteBudget.addEventListener('click', function() {
+                // Fechar modal de edição
+                const editModalInstance = bootstrap.Modal.getInstance(editBudgetModal);
+                if (editModalInstance) {
+                    editModalInstance.hide();
+                }
+                // Exibir modal de confirmação
+                deleteBudgetConfirmModal.show();
+            });
+        }
+
+        const btnConfirmDeleteBudget = document.getElementById('btn-confirm-delete-budget');
+        if (btnConfirmDeleteBudget) {
+            btnConfirmDeleteBudget.addEventListener('click', function() {
+                const deleteForm = document.getElementById('deleteBudgetForm');
+                if (deleteForm) {
+                    deleteForm.submit();
+                }
+            });
+        }
     });
 </script>
 
@@ -558,6 +758,16 @@
     }
     
     .dark-mode .transaction-row:hover {
+        background-color: #0c233c !important;
+        opacity: 0.85;
+    }
+    
+    .budget-row:hover {
+        background-color: var(--background-off-white) !important;
+        opacity: 0.85;
+    }
+    
+    .dark-mode .budget-row:hover {
         background-color: #0c233c !important;
         opacity: 0.85;
     }
