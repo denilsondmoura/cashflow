@@ -22,11 +22,15 @@ class CreateRecurringTransactionPlanningCommand:
         if not self.description or not self.description.strip():
             raise ValueError("Descrição da transação não informada")
 
-        if self.repeat and (not self.iterations or self.iterations < 2):
-            raise ValueError("Quantidade de repetições da transação inválida!")
+        if self.repeat:
+            if not self.iterations and not self.repeat_until:
+                raise ValueError("Defina a data limite ou a quantidade de repetições da transação!")
+            
+            if self.iterations is not None and self.iterations < 2:
+                raise ValueError("Quantidade de repetições da transação inválida!")
 
-        if self.repeat and (not self.repeat_until or self.repeat_until < self.due_date):
-            raise ValueError("Data de repetição da transação inválida!")  
+            if self.repeat_until is not None and self.repeat_until < self.due_date:
+                raise ValueError("Data de repetição da transação inválida!")
 
 
 @dataclass

@@ -1,0 +1,741 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4 px-3">
+    <!-- Header com botão para voltar -->
+    <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'planning-details' planning.id %}" class="btn btn-link text-navy p-0 me-3 fs-5" aria-label="Voltar para o planejamento">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="h2 fw-bold text-navy mb-1 text-uppercase tracking-wide">Movimentações Previstas</h1>
+            <p class="text-muted mb-0 small">
+                <span><i class="fas fa-folder me-1"></i>Planejamento: {{ planning.name }}</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- 3 Column Layout with CSS Plus separators -->
+    <div class="d-flex flex-column flex-lg-row align-items-stretch justify-content-between gap-4">
+        <!-- COL 1: ENTRADAS PREVISTAS -->
+        <div class="flex-grow-1 flex-basis-0" style="flex: 1; min-width: 0;">
+            <div class="column-wrapper h-100 py-3 rounded-4">
+                <div class="mb-3">
+                    <h2 class="h4 fw-bold text-entrada mb-1 text-uppercase">
+                        <i class="fas fa-arrow-alt-circle-up text-entrada me-2"></i>Entradas Previstas
+                    </h2>
+                    <p class="text-muted small text-uppercase mb-3 fw-bold tracking-wide" style="font-size: 0.72rem; line-height: 1.4; min-height: 40px; opacity: 0.75;">
+                        Registre aqui suas previsões de entrada. Ex: salário, restituição do ir, empréstimo, etc <br><br>
+                    </p>
+                    <button class="btn btn-outline-navy btn-sm rounded-pill px-3 fw-bold mb-4" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#newTransactionModal" 
+                            data-transaction-type="inflow">+ NOVO</button>
+                </div>
+
+                <!-- Months list -->
+                <div class="d-flex flex-column gap-3">
+                    {% for item in inflows_grouped %}
+                    <div class="month-box border border-navy rounded-3 p-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center user-select-none" 
+                             data-bs-toggle="collapse" 
+                             data-bs-target="#inflow-month-{{ forloop.counter }}" 
+                             aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                             style="cursor: pointer;">
+                            <span class="fw-bold text-navy tracking-wider">
+                                <i class="fas fa-chevron-right me-2 transition-icon"></i>{{ item.month }}
+                            </span>
+                            <span class="fw-bold text-navy">{{ item.total_formatted }}</span>
+                        </div>
+                        
+                        <div class="collapse {% if forloop.first %}show{% endif %} mt-3" id="inflow-month-{{ forloop.counter }}">
+                            {% if item.transactions %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless align-middle mb-0">
+                                    <thead>
+                                        <tr class="border-bottom border-navy-subtle">
+                                            <th class="small fw-bold text-navy py-1" style="width: 20%;">DATA</th>
+                                            <th class="small fw-bold text-navy py-1" style="width: 50%;">DESCRIÇÃO</th>
+                                            <th class="small fw-bold text-navy py-1 text-end" style="width: 30%;">VALOR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tx in item.transactions %}
+                                        <tr {% if tx.id %}
+                                                style="cursor: pointer;" 
+                                                class="transaction-row" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editTransactionModal"
+                                                data-id="{{ tx.id }}"
+                                                data-description="{{ tx.description }}"
+                                                data-amount="{{ tx.amount_raw }}"
+                                                data-due-date="{{ tx.due_date_iso }}"
+                                                data-cleared="{% if tx.cleared %}true{% else %}false{% endif %}"
+                                                data-type="{{ tx.type }}"
+                                            {% endif %}>
+                                            <td class="small text-muted py-1">{{ tx.due_date_str }}</td>
+                                            <td class="small text-navy py-1">{{ tx.description }}</td>
+                                            <td class="small text-navy py-1 text-end">{{ tx.amount_formatted }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-muted small text-center py-2">Nenhuma transação para este mês.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- COL 2: COMPROMISSOS & GASTOS PLANEJADOS -->
+        <div class="flex-grow-1 flex-basis-0" style="flex: 1; min-width: 0;">
+            <div class="column-wrapper h-100 py-3 rounded-4">
+                <div class="mb-3">
+                    <h2 class="h4 fw-bold text-saida mb-1 text-uppercase">
+                        <i class="fas fa-arrow-alt-circle-down text-saida me-2"></i>Saídas Previstas
+                    </h2>
+                    <p class="text-muted small text-uppercase mb-3 fw-bold tracking-wide" style="font-size: 0.72rem; line-height: 1.4; min-height: 40px; opacity: 0.75;">
+                        Registre aqui suas contas fixas ou gastos planejados. Ex: conta de energia, fatura do cartão, emprestimo, viagem, etc
+                    </p>
+                    <button class="btn btn-outline-navy btn-sm rounded-pill px-3 fw-bold mb-4" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#newTransactionModal" 
+                            data-transaction-type="outflow">+ NOVO</button>
+                </div>
+
+                <!-- Months list -->
+                <div class="d-flex flex-column gap-3">
+                    {% for item in outflows_grouped %}
+                    <div class="month-box border border-navy rounded-3 p-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center user-select-none" 
+                             data-bs-toggle="collapse" 
+                             data-bs-target="#outflow-month-{{ forloop.counter }}" 
+                             aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                             style="cursor: pointer;">
+                            <span class="fw-bold text-navy tracking-wider">
+                                <i class="fas fa-chevron-right me-2 transition-icon"></i>{{ item.month }}
+                            </span>
+                            <span class="fw-bold text-navy">{{ item.total_formatted }}</span>
+                        </div>
+                        
+                        <div class="collapse {% if forloop.first %}show{% endif %} mt-3" id="outflow-month-{{ forloop.counter }}">
+                            {% if item.transactions %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless align-middle mb-0">
+                                    <thead>
+                                        <tr class="border-bottom border-navy-subtle">
+                                            <th class="small fw-bold text-navy py-1" style="width: 20%;">DATA</th>
+                                            <th class="small fw-bold text-navy py-1" style="width: 50%;">DESCRIÇÃO</th>
+                                            <th class="small fw-bold text-navy py-1 text-end" style="width: 30%;">VALOR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tx in item.transactions %}
+                                        <tr {% if tx.id %}
+                                                style="cursor: pointer;" 
+                                                class="transaction-row" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editTransactionModal"
+                                                data-id="{{ tx.id }}"
+                                                data-description="{{ tx.description }}"
+                                                data-amount="{{ tx.amount_raw }}"
+                                                data-due-date="{{ tx.due_date_iso }}"
+                                                data-cleared="{% if tx.cleared %}true{% else %}false{% endif %}"
+                                                data-type="{{ tx.type }}"
+                                            {% endif %}>
+                                            <td class="small text-muted py-1">{{ tx.due_date_str }}</td>
+                                            <td class="small text-navy py-1">{{ tx.description }}</td>
+                                            <td class="small text-navy py-1 text-end">{{ tx.amount_formatted }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-muted small text-center py-2">Nenhuma transação para este mês.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 3: GASTOS VARIADOS -->
+        <div class="flex-grow-1 flex-basis-0" style="flex: 1; min-width: 0;">
+            <div class="column-wrapper h-100 py-3 rounded-4">
+                <div class="mb-3">
+                    <h2 class="h4 fw-bold text-variado mb-1 text-uppercase">
+                        <i class="fas fa-sliders-h text-variado me-2"></i>Gastos Variados
+                    </h2>
+                    <p class="text-muted small text-uppercase mb-3 fw-bold tracking-wide" style="font-size: 0.72rem; line-height: 1.4; min-height: 40px; opacity: 0.75;">
+                        Faça orçamento mensal para categorias de gastos baseado no seu histórico de gastos. Ex: supermercado - R$ 1.100,00; lanches - R$ 300,00, etc
+                    </p>
+                    <button class="btn btn-outline-navy btn-sm rounded-pill px-3 fw-bold mb-4">+ NOVO</button>
+                </div>
+
+                <!-- Budget list -->
+                <div class="d-flex flex-column gap-3">
+                    <div class="month-box border border-navy rounded-3 p-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="fw-bold text-navy tracking-wider">ORÇAMENTO</span>
+                            <span class="fw-bold text-navy">{{ total_budget_formatted }}</span>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-2">
+                                <thead>
+                                    <tr class="border-bottom border-navy-subtle">
+                                        <th class="small fw-bold text-navy py-1" style="width: 60%;">DESCRIÇÃO</th>
+                                        <th class="small fw-bold text-navy py-1 text-end" style="width: 40%;">VALOR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for budget in budgets %}
+                                    <tr>
+                                        <td class="small text-navy py-1">{{ budget.description }}</td>
+                                        <td class="small text-navy py-1 text-end">{{ budget.amount_formatted }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nova Transação -->
+<div class="modal fade" id="newTransactionModal" tabindex="-1" aria-labelledby="newTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-navy" id="newTransactionModalLabel">Nova Transação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'planning-forecast' planning.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="transaction-description" class="form-label small fw-bold text-navy">Descrição</label>
+                        <input type="text" class="form-control" id="transaction-description" name="description" placeholder="Descrição da transação..." required>
+                    </div>
+                    
+                    <!-- Hidden Type field -->
+                    <input type="hidden" id="transaction-type" name="type" value="inflow">
+
+                    <!-- Valor -->
+                    <div class="mb-3">
+                        <label for="transaction-amount" class="form-label small fw-bold text-navy">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text small bg-light text-muted" id="amount-prefix">R$</span>
+                            <input type="text" class="form-control" id="transaction-amount" name="amount" placeholder="0,00" required>
+                        </div>
+                    </div>
+
+                    <!-- Data de Vencimento -->
+                    <div class="mb-3">
+                        <label for="transaction-due-date" class="form-label small fw-bold text-navy">Data Prevista</label>
+                        <input type="date" class="form-control" id="transaction-due-date" name="due_date" required>
+                    </div>
+
+                    <!-- Opções: Cleared, Auto Pay e Repeat -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="transaction-cleared" name="cleared">
+                            <label class="form-check-label small" for="transaction-cleared" id="transaction-cleared-label">Já foi pago/recebido?</label>
+                        </div>
+                        <div class="form-check form-switch mb-2" id="auto-pay-wrapper">
+                            <input class="form-check-input" type="checkbox" role="switch" id="transaction-auto-pay" name="auto_pay">
+                            <label class="form-check-label small" for="transaction-auto-pay">É Débito automático?</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="transaction-repeat" name="repeat">
+                            <label class="form-check-label small" for="transaction-repeat">É recorrente?</label>
+                        </div>
+                    </div>
+
+                    <!-- Campos para Recorrência (ocultos por padrão) -->
+                    <div id="recurrence-fields" class="d-none border-top pt-3 mt-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="transaction-repeat-until" class="form-label small fw-bold text-navy">Repetir Até</label>
+                                <input type="date" class="form-control" id="transaction-repeat-until" name="repeat_until">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="transaction-iterations" class="form-label small fw-bold text-navy">Repetições (Parcelas)</label>
+                                <input type="number" min="2" class="form-control" id="transaction-iterations" name="iterations" placeholder="Mínimo 2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-bold text-white">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Transação -->
+<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-labelledby="editTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-navy" id="editTransactionModalLabel">Editar Movimentação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Edit Form -->
+                <form id="editTransactionForm" method="POST">
+                    {% csrf_token %}
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="edit-transaction-description" class="form-label small fw-bold text-navy">Descrição</label>
+                        <input type="text" class="form-control" id="edit-transaction-description" name="description" required>
+                    </div>
+                    
+                    <!-- Valor -->
+                    <div class="mb-3">
+                        <label for="edit-transaction-amount" class="form-label small fw-bold text-navy">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text small bg-light text-muted" id="edit-amount-prefix">R$</span>
+                            <input type="text" class="form-control" id="edit-transaction-amount" name="amount" required>
+                        </div>
+                    </div>
+
+                    <!-- Data de Vencimento -->
+                    <div class="mb-3">
+                        <label for="edit-transaction-due-date" class="form-label small fw-bold text-navy">Data Prevista</label>
+                        <input type="date" class="form-control" id="edit-transaction-due-date" name="due_date" required>
+                    </div>
+
+                    <!-- Pago / Recebido -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="edit-transaction-cleared" name="cleared">
+                            <label class="form-check-label small" for="edit-transaction-cleared" id="edit-transaction-cleared-label">Já foi pago/recebido?</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <button type="button" class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold" id="btn-delete-transaction">
+                            <i class="fas fa-trash-alt me-1"></i> Excluir
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-bold me-2" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-bold text-white">Salvar</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Hidden Delete Form -->
+                <form id="deleteTransactionForm" method="POST" style="display: none;">
+                    {% csrf_token %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold text-danger" id="deleteConfirmModalLabel">Confirmar Exclusão</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="small text-muted mb-0">Tem certeza de que deseja excluir esta transação? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-light btn-sm px-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm px-3 rounded-pill fw-bold" id="btn-confirm-delete">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script de manipulação do modal -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Toggle de tipo com base no botão clicado
+        const transactionModal = document.getElementById('newTransactionModal');
+        if (transactionModal) {
+            transactionModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const type = button.getAttribute('data-transaction-type');
+                const typeInput = transactionModal.querySelector('#transaction-type');
+                if (typeInput && type) {
+                    typeInput.value = type;
+                }
+                
+                const prefix = transactionModal.querySelector('#amount-prefix');
+                const modalTitle = transactionModal.querySelector('#newTransactionModalLabel');
+                const descriptionInput = transactionModal.querySelector('#transaction-description');
+                const clearedLabel = transactionModal.querySelector('#transaction-cleared-label');
+                const autoPayWrapper = transactionModal.querySelector('#auto-pay-wrapper');
+                
+                if (type === 'inflow') {
+                    if (modalTitle) modalTitle.textContent = 'Nova Entrada';
+                    if (prefix) prefix.textContent = 'R$';
+                    if (descriptionInput) descriptionInput.placeholder = 'Ex: Salário, Transferência...';
+                    if (clearedLabel) clearedLabel.textContent = 'Já foi recebido?';
+                    if (autoPayWrapper) autoPayWrapper.classList.add('d-none');
+                } else if (type === 'outflow') {
+                    if (modalTitle) modalTitle.textContent = 'Nova Saída';
+                    if (prefix) prefix.textContent = '- R$';
+                    if (descriptionInput) descriptionInput.placeholder = 'Ex: Fatura do cartão, Energia...';
+                    if (clearedLabel) clearedLabel.textContent = 'Já foi pago?';
+                    if (autoPayWrapper) autoPayWrapper.classList.remove('d-none');
+                }
+                
+                // Definir a data atual como padrão no campo "due_date"
+                const dateInput = transactionModal.querySelector('#transaction-due-date');
+                if (dateInput && !dateInput.value) {
+                    const today = new Date().toISOString().split('T')[0];
+                    dateInput.value = today;
+                }
+            });
+        }
+
+        // Máscara de valor monetário (R$)
+        const amountInput = document.getElementById('transaction-amount');
+        if (amountInput) {
+            amountInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/\D/g, "");
+                if (value === "") {
+                    this.value = "";
+                    return;
+                }
+                value = (parseFloat(value) / 100).toFixed(2);
+                let parts = value.split(".");
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                this.value = parts.join(",");
+            });
+        }
+
+        // Exibir/ocultar campos de recorrência
+        const repeatCheckbox = document.getElementById('transaction-repeat');
+        const recurrenceFields = document.getElementById('recurrence-fields');
+        if (repeatCheckbox && recurrenceFields) {
+            repeatCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    recurrenceFields.classList.remove('d-none');
+                } else {
+                    recurrenceFields.classList.add('d-none');
+                }
+            });
+        }
+
+        // Validar formulário antes de enviar
+        if (transactionModal) {
+            const form = transactionModal.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    if (repeatCheckbox && repeatCheckbox.checked) {
+                        const repeatUntilInput = recurrenceFields.querySelector('[name="repeat_until"]');
+                        const iterationsInput = recurrenceFields.querySelector('[name="iterations"]');
+                        
+                        if (!repeatUntilInput.value && !iterationsInput.value) {
+                            event.preventDefault();
+                            alert("Por favor, preencha a data limite (Repetir Até) ou a quantidade de repetições (Parcelas)!");
+                            repeatUntilInput.focus();
+                        }
+                    }
+                });
+            }
+        }
+
+        // Configuração do modal de edição
+        const editTransactionModal = document.getElementById('editTransactionModal');
+        if (editTransactionModal) {
+            editTransactionModal.addEventListener('show.bs.modal', function (event) {
+                const row = event.relatedTarget;
+                const id = row.getAttribute('data-id');
+                const description = row.getAttribute('data-description');
+                const amount = row.getAttribute('data-amount');
+                const dueDate = row.getAttribute('data-due-date');
+                const cleared = row.getAttribute('data-cleared') === 'true';
+                const type = row.getAttribute('data-type');
+                
+                // Configurar forms
+                const editForm = editTransactionModal.querySelector('#editTransactionForm');
+                const deleteForm = editTransactionModal.querySelector('#deleteTransactionForm');
+                if (editForm) {
+                    editForm.action = `/transaction/${id}/edit/`;
+                }
+                if (deleteForm) {
+                    deleteForm.action = `/transaction/${id}/delete/`;
+                }
+                
+                // Preencher campos
+                const descInput = editTransactionModal.querySelector('#edit-transaction-description');
+                if (descInput) descInput.value = description;
+                
+                const amountInput = editTransactionModal.querySelector('#edit-transaction-amount');
+                if (amountInput) amountInput.value = amount;
+                
+                const dateInput = editTransactionModal.querySelector('#edit-transaction-due-date');
+                if (dateInput) dateInput.value = dueDate;
+                
+                const clearedInput = editTransactionModal.querySelector('#edit-transaction-cleared');
+                if (clearedInput) clearedInput.checked = cleared;
+                
+                // Ajustar textos baseados no tipo
+                const prefix = editTransactionModal.querySelector('#edit-amount-prefix');
+                const modalTitle = editTransactionModal.querySelector('#editTransactionModalLabel');
+                const clearedLabel = editTransactionModal.querySelector('#edit-transaction-cleared-label');
+                
+                if (type === 'inflow') {
+                    if (modalTitle) modalTitle.textContent = 'Editar Entrada';
+                    if (prefix) prefix.textContent = 'R$';
+                    if (clearedLabel) clearedLabel.textContent = 'Já foi recebido?';
+                } else if (type === 'outflow') {
+                    if (modalTitle) modalTitle.textContent = 'Editar Saída';
+                    if (prefix) prefix.textContent = '- R$';
+                    if (clearedLabel) clearedLabel.textContent = 'Já foi pago?';
+                }
+            });
+        }
+
+        // Aplicar máscara no campo de valor do modal de edição
+        const editAmountInput = document.getElementById('edit-transaction-amount');
+        if (editAmountInput) {
+            editAmountInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/\D/g, "");
+                if (value === "") {
+                    this.value = "";
+                    return;
+                }
+                value = (parseFloat(value) / 100).toFixed(2);
+                let parts = value.split(".");
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                this.value = parts.join(",");
+            });
+        }
+
+        // Lógica de exclusão com confirmação modal
+        const btnDelete = document.getElementById('btn-delete-transaction');
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        if (btnDelete) {
+            btnDelete.addEventListener('click', function() {
+                // Fechar modal de edição
+                const editModalInstance = bootstrap.Modal.getInstance(editTransactionModal);
+                if (editModalInstance) {
+                    editModalInstance.hide();
+                }
+                // Exibir modal de confirmação
+                deleteConfirmModal.show();
+            });
+        }
+
+        const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+        if (btnConfirmDelete) {
+            btnConfirmDelete.addEventListener('click', function() {
+                const deleteForm = document.getElementById('deleteTransactionForm');
+                if (deleteForm) {
+                    deleteForm.submit();
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    .transaction-row:hover {
+        background-color: var(--background-off-white) !important;
+        opacity: 0.85;
+    }
+    
+    .dark-mode .transaction-row:hover {
+        background-color: #0c233c !important;
+        opacity: 0.85;
+    }
+    .forecast-container {
+        font-family: var(--main-font);
+        background-color: var(--background-off-white);
+    }
+    
+    .tracking-wide {
+        letter-spacing: 1px;
+    }
+    
+    .btn-link:hover {
+        opacity: 0.7;
+    }
+    
+    .transition-icon {
+        transition: transform 0.2s ease;
+        display: inline-block;
+    }
+    
+    [aria-expanded="true"] .transition-icon {
+        transform: rotate(90deg);
+    }
+    
+    .text-entrada {
+        color: #2b7a4b !important;
+    }
+    .text-saida {
+        color: #b23b3b !important;
+    }
+    .text-variado {
+        color: #2b6cb0 !important;
+    }
+    
+    .dark-mode .text-entrada {
+        color: #81c784 !important;
+    }
+    .dark-mode .text-saida {
+        color: #e57373 !important;
+    }
+    .dark-mode .text-variado {
+        color: #90cdf4 !important;
+    }
+    
+
+    
+    .btn-outline-navy {
+        color: var(--primary-navy);
+        border: 1px solid var(--primary-navy);
+        background-color: transparent;
+        transition: all 0.2s ease;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-outline-navy:hover {
+        color: #ffffff;
+        background-color: var(--primary-navy);
+    }
+    
+    .month-box {
+        box-shadow: 0 4px 12px rgba(0, 33, 71, 0.03);
+        transition: transform 0.2s ease;
+    }
+    
+    .month-box:hover {
+        transform: translateY(-2px);
+    }
+    
+    .border-navy {
+        border-color: rgba(0, 33, 71, 0.2) !important;
+    }
+    
+    .border-navy-subtle {
+        border-color: rgba(0, 33, 71, 0.1) !important;
+    }
+    
+    .plus-divider {
+        font-size: 2.5rem;
+        color: rgba(0, 33, 71, 0.15);
+        font-weight: 300;
+        pointer-events: none;
+        user-select: none;
+        line-height: 1;
+        margin-top: 100px;
+    }
+    
+    .hover-opacity:hover {
+        opacity: 0.7;
+    }
+    
+    /* Dark Mode style extensions */
+    .dark-mode .forecast-container {
+        background-color: #011627 !important;
+    }
+    
+    .dark-mode .month-box {
+        background-color: #0c233c !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .dark-mode .text-navy, 
+    .dark-mode h1, 
+    .dark-mode h2, 
+    .dark-mode th, 
+    .dark-mode td {
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .btn-outline-navy {
+        color: #ffffff;
+        border-color: #ffffff;
+    }
+    
+    .dark-mode .btn-outline-navy:hover {
+        background-color: #ffffff;
+        color: #011627 !important;
+    }
+    
+    .dark-mode .plus-divider {
+        color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Modal styles */
+    .modal-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 33, 71, 0.1);
+        background-color: #ffffff;
+    }
+    
+    .modal-header,
+    .modal-footer {
+        border-color: rgba(0, 33, 71, 0.08);
+    }
+    
+    /* Dark Mode Modal support */
+    .dark-mode .modal-content {
+        background-color: #0c233c !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .dark-mode .modal-header,
+    .dark-mode .modal-footer {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .dark-mode .modal-title {
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .form-control,
+    .dark-mode .form-select,
+    .dark-mode .input-group-text {
+        background-color: #011627 !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.4) !important;
+    }
+    
+    .dark-mode .btn-close {
+        filter: invert(1);
+    }
+    
+    .dark-mode .form-check-input:checked {
+        background-color: var(--primary-navy);
+        border-color: var(--primary-navy);
+    }
+    
+    .dark-mode .btn-light {
+        background-color: #1e3d59 !important;
+        color: #ffffff !important;
+        border: none;
+    }
+</style>
+{% endblock %}

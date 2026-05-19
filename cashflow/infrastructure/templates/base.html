@@ -161,7 +161,7 @@
   </div>
   <header>
     <nav class="navbar navbar-expand-lg">
-      <div class="container">
+      <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'planning-list-create' %}" aria-hidden="true">
           <img src="{% static 'img/logo.png'%}" width="130"/>
         </a>
@@ -243,7 +243,23 @@
             {% for message in messages %}
                 // Cria um novo elemento toast
                 const toastEl = document.createElement('div');
-                toastEl.className = 'toast align-items-center text-white bg-{{ message.tags }}';
+                
+                let bgClass = 'bg-primary text-white';
+                let closeBtnClass = 'btn-close-white';
+                const tag = '{{ message.tags }}';
+                if (tag === 'success') {
+                    bgClass = 'bg-success text-white';
+                } else if (tag === 'error' || tag === 'danger') {
+                    bgClass = 'bg-danger text-white';
+                } else if (tag === 'warning') {
+                    bgClass = 'bg-warning text-dark';
+                    closeBtnClass = '';
+                } else if (tag === 'info') {
+                    bgClass = 'bg-info text-dark';
+                    closeBtnClass = '';
+                }
+                
+                toastEl.className = `toast align-items-center ${bgClass}`;
                 toastEl.setAttribute('role', 'alert');
                 toastEl.setAttribute('aria-live', 'assertive');
                 toastEl.setAttribute('aria-atomic', 'true');
@@ -253,7 +269,7 @@
                         <div class="toast-body">
                             {{ message|escapejs }}
                         </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        <button type="button" class="btn-close ${closeBtnClass} me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
                 `;
                 

@@ -46,3 +46,8 @@ class Currency:
         if isinstance(other, Currency):
             return self.value <= other.value
         return self.value <= Decimal(str(other))
+
+    def __ge__(self, other):
+        if isinstance(other, Currency):
+            return self.value >= other.value
+        return self.value >= Decimal(str(other))
