@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4 px-3">
+    <!-- Header com botão para voltar -->
+    <div class="d-flex align-items-center mb-4">
+        <a href="{% url 'planning-details' planning.id %}" class="btn btn-link text-navy p-0 me-3 fs-5" aria-label="Voltar para o planejamento">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="h2 fw-bold text-navy mb-1 text-uppercase tracking-wide">Fluxo de Caixa</h1>
+            <p class="text-muted mb-0 small">
+                <span><i class="fas fa-folder me-1"></i>Planejamento: {{ planning.name }}</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Coluna da Esquerda: Meses e Tabelas de Fluxo -->
+        <div class="col-lg-8">
+            <div class="d-flex flex-column gap-3">
+                {% for month in months_data %}
+                <div class="month-box border border-navy rounded-4 p-4 bg-white shadow-sm">
+                    <!-- Cabeçalho do Collapse -->
+                    <div class="d-flex justify-content-between align-items-center user-select-none" 
+                         data-bs-toggle="collapse" 
+                         data-bs-target="#month-{{ forloop.counter }}" 
+                         aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                         style="cursor: pointer;">
+                        <span class="fw-bold text-navy fs-5 tracking-wider text-uppercase">
+                            <i class="fas fa-chevron-right me-2 transition-icon text-muted"></i>{{ month.month_name }}
+                        </span>
+                        <span class="small text-navy fw-semibold hover-opacity">Ver Detalhes</span>
+                    </div>
+                    
+                    <!-- Conteúdo do Collapse (Expandido se for o primeiro mês) -->
+                    <div class="collapse {% if forloop.first %}show{% endif %} mt-4" id="month-{{ forloop.counter }}">
+                        <!-- Alertas/Notifications do Mês -->
+                        {% if month.alerts %}
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            {% for alert in month.alerts %}
+                            <div class="custom-alert custom-alert-{{ alert.type }} p-3 rounded-3">
+                                <div class="d-flex align-items-center">
+                                    {% if alert.type == 'danger' %}
+                                        <i class="fas fa-exclamation-circle me-3 fs-5"></i>
+                                    {% elif alert.type == 'success' %}
+                                        <i class="fas fa-check-circle me-3 fs-5"></i>
+                                    {% else %}
+                                        <i class="fas fa-exclamation-triangle me-3 fs-5"></i>
+                                    {% endif %}
+                                    <span class="small fw-semibold">{{ alert.message }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Tabela de Movimentações Diárias -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-0 text-navy">
+                                <thead>
+                                    <tr class="border-bottom border-navy-subtle text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                        <th class="fw-bold py-2" style="width: 12%;">DATA</th>
+                                        <th class="fw-bold text-end py-2" style="width: 18%;">ENTRADA</th>
+                                        <th class="fw-bold text-end py-2" style="width: 18%;">SAÍDA</th>
+                                        <th class="fw-bold text-end py-2" style="width: 16%;">DIÁRIO</th>
+                                        <th class="fw-bold text-end py-2" style="width: 18%;">SALDO</th>
+                                        <th class="fw-bold text-end py-2" style="width: 18%;">BASELINE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for day in month.days %}
+                                    <tr class="cashflow-row border-bottom border-light">
+                                        <td class="small text-muted py-2 fw-medium">{{ day.date_str }}</td>
+                                        <td class="small text-entrada text-end py-2 fw-semibold">{{ day.inflow_formatted }}</td>
+                                        <td class="small text-saida text-end py-2 fw-semibold">{{ day.outflow_formatted }}</td>
+                                        <td class="small text-muted text-end py-2">{{ day.diario_formatted }}</td>
+                                        <td class="small text-navy fw-bold text-end py-2">{{ day.saldo_formatted }}</td>
+                                        <td class="small text-muted text-end py-2">{{ day.baseline_formatted }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-calendar-times fa-3x mb-3 text-navy opacity-25"></i>
+                    <p class="mb-0">Nenhuma movimentação ou data encontrada para este planejamento.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Coluna da Direita: Saldo Atual por Categoria & Lista de Desejos -->
+        <div class="col-lg-4">
+            <!-- Card de Saldo Atual -->
+            <div class="card border border-navy rounded-4 p-4 bg-white shadow-sm mb-4">
+                <div class="border-bottom border-navy-subtle pb-3 mb-3">
+                    <h5 class="fw-bold text-navy text-uppercase tracking-wider mb-1 fs-6">Saldo Atual</h5>
+                    <div class="fs-4 fw-bold text-navy">{{ total_balance_formatted }}</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless align-middle mb-0">
+                        <thead>
+                            <tr class="border-bottom border-navy-subtle text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                <th class="fw-bold py-1" style="width: 60%;">CATEGORIA</th>
+                                <th class="fw-bold text-end py-1" style="width: 40%;">SALDO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for budget in budgets %}
+                            <tr class="budget-row-style">
+                                <td class="small text-navy py-2 fw-medium text-capitalize">{{ budget.description }}</td>
+                                <td class="small text-navy py-2 text-end fw-bold">{{ budget.amount_formatted }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-muted small text-center py-3">Nenhum orçamento cadastrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3 border-top border-navy-subtle pt-2">
+                    <a href="#" class="small text-navy text-decoration-none fw-bold hover-opacity text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">mostrar mais...</a>
+                </div>
+            </div>
+
+            <!-- Card de Lista de Desejos -->
+            <div class="card border border-navy rounded-4 p-4 bg-white shadow-sm">
+                <div class="border-bottom border-navy-subtle pb-3 mb-3">
+                    <h5 class="fw-bold text-navy text-uppercase tracking-wider mb-1 fs-6">Lista de Desejos</h5>
+                </div>
+                <div class="text-muted small text-center py-4">
+                    <i class="far fa-heart fa-2x mb-2 text-navy opacity-25"></i>
+                    <p class="mb-0 fw-medium">Nenhum desejo na lista.</p>
+                </div>
+                <div class="text-end mt-3 border-top border-navy-subtle pt-2">
+                    <a href="#" class="small text-navy text-decoration-none fw-bold hover-opacity text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">mostrar mais...</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tracking-wide {
+        letter-spacing: 1px;
+    }
+    
+    .btn-link:hover {
+        opacity: 0.7;
+    }
+    
+    .transition-icon {
+        transition: transform 0.2s ease;
+        display: inline-block;
+    }
+    
+    [aria-expanded="true"] .transition-icon {
+        transform: rotate(90deg);
+    }
+    
+    .text-entrada {
+        color: #2b7a4b !important;
+    }
+    .text-saida {
+        color: #b23b3b !important;
+    }
+    
+    .dark-mode .text-entrada {
+        color: #81c784 !important;
+    }
+    .dark-mode .text-saida {
+        color: #e57373 !important;
+    }
+    
+    .month-box {
+        box-shadow: 0 4px 12px rgba(0, 33, 71, 0.03);
+        transition: transform 0.2s ease;
+    }
+    
+    .border-navy {
+        border-color: rgba(0, 33, 71, 0.12) !important;
+    }
+    
+    .border-navy-subtle {
+        border-color: rgba(0, 33, 71, 0.08) !important;
+    }
+    
+    .hover-opacity:hover {
+        opacity: 0.7;
+    }
+
+    .cashflow-row:hover {
+        background-color: var(--background-off-white) !important;
+    }
+    .dark-mode .cashflow-row:hover {
+        background-color: #0c233c !important;
+    }
+
+    /* Custom Premium Alerts */
+    .custom-alert {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .custom-alert-warning {
+        background-color: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        color: #b45309;
+    }
+    
+    .custom-alert-success {
+        background-color: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        color: #1d4ed8;
+    }
+    
+    .custom-alert-danger {
+        background-color: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        color: #b91c1c;
+    }
+    
+    /* Dark Mode support */
+    .dark-mode .month-box,
+    .dark-mode .card {
+        background-color: #0c233c !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+    
+    .dark-mode .text-navy, 
+    .dark-mode h1, 
+    .dark-mode h2, 
+    .dark-mode th, 
+    .dark-mode td,
+    .dark-mode .fs-4 {
+        color: #ffffff !important;
+    }
+    
+    .dark-mode .border-navy-subtle {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .dark-mode .custom-alert-warning {
+        background-color: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
+    }
+    
+    .dark-mode .custom-alert-success {
+        background-color: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.4);
+        color: #60a5fa;
+    }
+    
+    .dark-mode .custom-alert-danger {
+        background-color: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+</style>
+{% endblock %}
