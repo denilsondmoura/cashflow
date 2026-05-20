@@ -114,6 +114,7 @@ class PlanningForecastView(LoginRequiredMixin, View):
         }
         return render(request, 'planing_forecast.html', context)
 
+class TransactionCreateView(LoginRequiredMixin, View):
     def post(self, request, id):
         from decimal import Decimal
         from django.contrib import messages

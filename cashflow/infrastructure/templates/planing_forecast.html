@@ -233,7 +233,7 @@
                 <h5 class="modal-title fw-bold text-navy" id="newTransactionModalLabel">Nova Transação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form method="POST" action="{% url 'planning-forecast' planning.id %}">
+            <form method="POST" action="{% url 'transaction-create' planning.id %}">
                 {% csrf_token %}
                 <div class="modal-body">
                     <!-- Descrição -->
