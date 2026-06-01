@@ -1,3 +1,4 @@
+from .dtos.planning_dto import PlanningForecastScreenDTO
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -74,5 +75,5 @@ class PlanningUseCase(ABC):
         pass
 
     @abstractmethod
-    def list_grouped_transactions(self, planning_id: int) -> dict:
+    def visualize_forecast_transactions_in_planning(self, planning_id: int) -> PlanningForecastScreenDTO:
         pass

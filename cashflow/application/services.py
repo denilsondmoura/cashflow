@@ -1,10 +1,18 @@
-from typing import Optional
+from cashflow.application.ports.inbound.commands import planning_commands
+from cashflow.application.ports.inbound.dtos.planning_dto import PlanningItemDTO
+from cashflow.application.ports.inbound.commands import budget_commands
+import contextlib
+from typing import Optional, List
 from datetime import date
+from collections import defaultdict
+
 from cashflow.application.ports.inbound.use_cases import PlanningUseCase
+from cashflow.application.ports.inbound.dtos.transaction_dto import TransactionItemDTO, TransactionsGroupedByMonthDTO
+from cashflow.application.ports.inbound.dtos.planning_dto import PlanningForecastScreenDTO
+from cashflow.application.ports.inbound.dtos.planning_dto import BudgetItemDTO
 from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
 from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
 from cashflow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
-from cashflow.application.ports.outbound.presenters import TransactionGroupPresenter
 
 from cashflow.application.ports.inbound.commands.planning_commands import (
     CreatePlanningCommand,
@@ -30,12 +38,10 @@ class PlanningService(PlanningUseCase):
         planning_repo: PlanningRepository,
         budget_repo: BudgetRepository,
         transaction_repo: TransactionRepository,
-        presenter: Optional[TransactionGroupPresenter] = None
     ):
         self.planning_repo = planning_repo
         self.budget_repo = budget_repo
         self.transaction_repo = transaction_repo
-        self.presenter = presenter
 
     def create_planning(self, command: CreatePlanningCommand) -> Planning:
         planning = Planning(
@@ -193,11 +199,90 @@ class PlanningService(PlanningUseCase):
             auto_pay=command.auto_pay
         )
 
-    def list_grouped_transactions(self, planning_id: int) -> dict:
+    def visualize_forecast_transactions_in_planning(self, planning_id: int) -> PlanningForecastScreenDTO:
+        def group_transactions_dto_by_month(transactions_by_month: dict) -> List[TransactionsGroupedByMonthDTO]:
+            MONTH_NAMES = {
+                1: "JANEIRO", 2: "FEVEREIRO", 3: "MARÇO", 4: "ABRIL", 5: "MAIO", 6: "JUNHO",
+                7: "JULHO", 8: "AGOSTO", 9: "SETEMBRO", 10: "OUTUBRO", 11: "NOVEMBRO", 12: "DEZEMBRO"
+            }
+
+            grouped_list: List[TransactionsGroupedByMonthDTO] = []
+            for month_num, txs in sorted(transactions_by_month.items()):
+                month_name = MONTH_NAMES.get(month_num, "OUTRO")
+                txs_sorted = sorted(txs, key=lambda tx: tx.due_date)
+                total = sum(tx.amount.value for tx in txs_sorted)
+
+                transactions_items_dto = []
+                for tx in txs_sorted:
+                    amount_raw_value = abs(tx.amount.value) if tx.type == 'outflow' else tx.amount.value
+                    transaction_dto = TransactionItemDTO(
+                        id = tx.id,
+                        due_date_str = tx.due_date.strftime("%d/%m"),
+                        due_date_iso = tx.due_date.strftime("%Y-%m-%d"),
+                        description = tx.description,
+                        amount_formatted = f"R$ {tx.amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                        amount_raw = f"{amount_raw_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                        cleared = tx.cleared,
+                        type = tx.type
+                    )
+
+                    transactions_items_dto.append(transaction_dto)
+
+                transactions_grouped_by_month_dto = TransactionsGroupedByMonthDTO(
+                    month=month_name,
+                    total_formatted=f"R$ {total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                    transactions=transactions_items_dto
+                )
+
+                grouped_list.append(transactions_grouped_by_month_dto)
+            
+            return grouped_list
+
         planning = self.planning_repo.find_by_id(planning_id)
         if not planning:
             raise ValueError("Planejamento não encontrado!")
-        if not self.presenter:
-            raise ValueError("Presenter não configurado no serviço de planejamento!")
+
+        planning_item_dto = PlanningItemDTO(
+            id=planning.id,
+            name=planning.name
+        )
+
+        inflows_by_month = defaultdict(list)
+        outflows_by_month = defaultdict(list)
+
+
         transactions = planning.transactions if planning.transactions else []
-        return self.presenter.group_transactions(transactions)
+        if transactions:
+            for t in transactions:
+                month_num = t.due_date.month
+                if t.type == "inflow" or t.amount.value >= 0:
+                    inflows_by_month[month_num].append(t)
+                else:
+                    outflows_by_month[month_num].append(t)
+
+        inflows_grouped_list = group_transactions_dto_by_month(inflows_by_month)
+        outflows_grouped_list = group_transactions_dto_by_month(outflows_by_month)
+ 
+        budgets_list: List[BudgetItemDTO] = []
+        total_budget = 0
+        budgets = planning.budgets if planning.budgets else []
+        if budgets:
+            for b in budgets:
+                total_budget += b.limit_amount.value
+                budget_item_dto = BudgetItemDTO(
+                    id=b.id,
+                    description=b.description,
+                    amount_formatted=f"R$ {b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                    amount_raw=f"{b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                )
+                budgets_list.append(budget_item_dto)
+
+        total_budget_formatted = f"R$ {total_budget:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+        return PlanningForecastScreenDTO(
+            planning = planning_item_dto,
+            inflows = inflows_grouped_list,
+            outflows = outflows_grouped_list,
+            budgets = budgets_list,
+            total_budget_formatted = total_budget_formatted
+        )

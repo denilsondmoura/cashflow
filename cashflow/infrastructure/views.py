@@ -13,12 +13,10 @@ from cashflow.application.ports.inbound.commands.planning_commands import Create
 from datetime import datetime
 
 def get_planning_service():
-    from cashflow.infrastructure.presenters import DjangoTransactionGroupPresenter
     return PlanningService(
         planning_repo=DjangoPlanningRepository(),
         budget_repo=DjangoBudgetRepository(),
         transaction_repo=DjangoTransactionRepository(),
-        presenter=DjangoTransactionGroupPresenter()
     )
 
 class PlanningView(LoginRequiredMixin, View):
@@ -88,29 +86,14 @@ class PlanningForecastView(LoginRequiredMixin, View):
         if not planning:
             return redirect('planning-list-create')
             
-        grouped_data = service.list_grouped_transactions(id)
-        inflows_grouped = grouped_data["inflows_grouped"]
-        outflows_grouped = grouped_data["outflows_grouped"]
-                
-        budget_list = []
-        total_budget = 0
-        if planning.budgets:
-            for b in planning.budgets:
-                total_budget += b.limit_amount.value
-                budget_list.append({
-                    "id": b.id,
-                    "description": b.description,
-                    "amount_formatted": f"R$ {b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                    "amount_raw": f"{b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                })
-        total_budget_formatted = f"R$ {total_budget:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            
+        planning_forecast_screen_dto = service.visualize_forecast_transactions_in_planning(id)
+        
         context = {
-            "planning": planning,
-            "inflows_grouped": inflows_grouped,
-            "outflows_grouped": outflows_grouped,
-            "budgets": budget_list,
-            "total_budget_formatted": total_budget_formatted
+            "planning": planning_forecast_screen_dto.planning,
+            "inflows_grouped": planning_forecast_screen_dto.inflows,
+            "outflows_grouped": planning_forecast_screen_dto.outflows,
+            "budgets": planning_forecast_screen_dto.budgets,
+            "total_budget_formatted": planning_forecast_screen_dto.total_budget_formatted
         }
         return render(request, 'planing_forecast.html', context)
 
