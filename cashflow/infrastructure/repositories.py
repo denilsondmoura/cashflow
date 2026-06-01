@@ -9,7 +9,7 @@ from cashflow.application.ports.outbound.repositories.budget_repository import B
 from cashflow.application.ports.outbound.repositories.transaction_repository import TransactionRepository
 from cashflow.application.ports.outbound.repositories.notification_repository import NotificationRepository
 
-
+# TODO: Usar o object_mapper nos repositories
 class DjangoPlanningRepository(PlanningRepository):
     def _to_entity(self, model: PlanningModel) -> Planning:
         created_by_user = User(
