@@ -1,16 +1,17 @@
-import json
-from collections import defaultdict
-from django.http import JsonResponse
+import calendar
+import math
+from decimal import Decimal
+from datetime import date, datetime
 from django.shortcuts import render, redirect
 from django.views import View
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 
+from cashflow.application.ports.inbound.commands.transaction_commands import CreateRecurringTransactionPlanningCommand, UpdateTransactionPlanningCommand
+from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand, UpdatePlanningCommand
+from cashflow.application.ports.inbound.commands.budget_commands import CreateBudgetPlanningCommand, UpdateBudgetPlanningCommand
 from .repositories import DjangoPlanningRepository, DjangoBudgetRepository, DjangoTransactionRepository
 from cashflow.application.services import PlanningService
-from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand, UpdatePlanningCommand
-from datetime import datetime
 
 def get_planning_service():
     return PlanningService(
@@ -99,12 +100,7 @@ class PlanningForecastView(LoginRequiredMixin, View):
 
 
 class PlanningCashflowView(LoginRequiredMixin, View):
-    def get(self, request, id):
-        import calendar
-        import math
-        from decimal import Decimal
-        from datetime import date, datetime
-        
+    def get(self, request, id):    
         def to_date(dt):
             if isinstance(dt, datetime):
                 return dt.date()
@@ -230,107 +226,59 @@ class PlanningCashflowView(LoginRequiredMixin, View):
 
 class TransactionCreateView(LoginRequiredMixin, View):
     def post(self, request, id):
-        from decimal import Decimal
-        from django.contrib import messages
-        from cashflow.application.ports.inbound.commands.transaction_commands import CreateRecurringTransactionPlanningCommand
-        from decimal import Decimal
-
         service = get_planning_service()
-        planning = service.planning_repo.find_by_id(id)
-        if not planning:
-            return redirect('planning-list-create')
 
-        due_date_str = request.POST.get('due_date')
-        description = request.POST.get('description')
-        amount_str = request.POST.get('amount')
-        transaction_type = request.POST.get('type')  # 'inflow' or 'outflow'
+        due_date_str = request.POST.get('due_date') or None
+        description = request.POST.get('description') or None
+        amount_str = request.POST.get('amount') or None
+        transaction_type = request.POST.get('type') or None  # 'inflow' or 'outflow'
         cleared = request.POST.get('cleared') == 'on' or request.POST.get('cleared') == 'true'
         auto_pay = request.POST.get('auto_pay') == 'on' or request.POST.get('auto_pay') == 'true'
         repeat = request.POST.get('repeat') == 'on' or request.POST.get('repeat') == 'true'
-        repeat_until_str = request.POST.get('repeat_until')
-        iterations_str = request.POST.get('iterations')
+        repeat_until_str = request.POST.get('repeat_until') or None
+        iterations_str = request.POST.get('iterations') or None
         
-
         try:
-            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
             clean_amount = amount_str.replace('.', '').replace(',', '.')
-            amount_val = Decimal(clean_amount)
-            repeat_until = datetime.strptime(repeat_until_str, '%Y-%m-%d').date() if repeat_until_str else None
-            iterations = int(iterations_str) if iterations_str else None
-            
-            if transaction_type == 'outflow' and amount_val > 0:
-                amount_val = -amount_val
-            elif transaction_type == 'inflow' and amount_val < 0:
-                amount_val = abs(amount_val)
-
             command = CreateRecurringTransactionPlanningCommand(
                 planning_id=id,
-                due_date=due_date,
+                due_date=due_date_str,
                 description=description,
-                amount=Decimal(amount_val),
+                amount=Decimal(clean_amount),
+                type=transaction_type,
                 cleared=cleared,
                 auto_pay=auto_pay,
                 repeat=repeat,
-                repeat_until=repeat_until,
-                iterations=iterations
+                repeat_until=repeat_until_str,
+                iterations=iterations_str
             )
 
             service.add_recurring_transaction_to_planning(command)
             messages.success(request, "Transação cadastrada com sucesso!")
         except Exception as e:
-            messages.error(request, f"Erro ao criar transação: {str(e)}")
+            messages.error(request, f"Erro ao cadastrada transação: {str(e)}")
+
 
         return redirect('planning-forecast', id=id)
 
 
 class TransactionEditView(View):
     def post(self, request, id):
-        from decimal import Decimal
-        from django.contrib import messages
-        from datetime import datetime
-        from cashflow.application.ports.inbound.commands.transaction_commands import UpdateTransactionPlanningCommand
-        from decimal import Decimal
-
         service = get_planning_service()
-        transaction = service.transaction_repo.find_by_id(id)
-        if not transaction:
-            messages.error(request, "Transação não encontrada!")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        due_date_str = request.POST.get('due_date')
-        description = request.POST.get('description')
-        amount_str = request.POST.get('amount')
+        due_date_str = request.POST.get('due_date') or None
+        description = request.POST.get('description') or None
+        amount_str = request.POST.get('amount') or None
         cleared = request.POST.get('cleared') == 'on' or request.POST.get('cleared') == 'true'
 
+        amount_val = Decimal(amount_str.replace('.', '').replace(',', '.'))
         try:
-            if not due_date_str:
-                raise ValueError("Data prevista não informada")
-            if not description or not description.strip():
-                raise ValueError("Descrição não informada")
-            if not amount_str:
-                raise ValueError("Valor não informado")
-
-            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-            amount_val = Decimal(amount_str.replace('.', '').replace(',', '.'))
-            
-            if transaction.type == 'outflow' and amount_val > 0:
-                amount_val = -amount_val
-            elif transaction.type == 'inflow' and amount_val < 0:
-                amount_val = abs(amount_val)
-
-            cleared_at = datetime.now().date() if cleared else None
-
             command = UpdateTransactionPlanningCommand(
                 id=id,
-                due_date=due_date,
+                due_date=due_date_str,
                 description=description,
-                amount=Decimal(amount_val),
-                cleared=cleared,
-                cleared_at=cleared_at,
-                auto_pay=transaction.auto_pay,
-                repeat=False,
-                iterations=0,
-                repeat_until=None
+                amount=amount_val,
+                cleared=cleared
             )
 
             service.update_transaction_in_planning(command)
@@ -338,52 +286,35 @@ class TransactionEditView(View):
         except Exception as e:
             messages.error(request, f"Erro ao atualizar transação: {str(e)}")
 
-        return redirect('planning-forecast', id=transaction.planning_id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class TransactionDeleteView(View):
     def post(self, request, id):
-        from django.contrib import messages
         service = get_planning_service()
-        transaction = service.transaction_repo.find_by_id(id)
-        if not transaction:
-            messages.error(request, "Transação não encontrada!")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        planning_id = transaction.planning_id
         try:
             service.remove_transaction_from_planning(id)
             messages.success(request, "Transação excluída com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao excluir transação: {str(e)}")
 
-        return redirect('planning-forecast', id=planning_id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class BudgetCreateView(View):
     def post(self, request, id):
-        from decimal import Decimal
-        from django.contrib import messages
-        from cashflow.application.ports.inbound.commands.budget_commands import CreateBudgetPlanningCommand
-        from decimal import Decimal
-
         service = get_planning_service()
+
         description = request.POST.get('description')
         limit_amount_str = request.POST.get('amount')
 
         try:
-            if not description or not description.strip():
-                raise ValueError("Descrição do orçamento não informada!")
-            if not limit_amount_str:
-                raise ValueError("Valor limite do orçamento não informado!")
-
             limit_amount_val = Decimal(limit_amount_str.replace('.', '').replace(',', '.'))
-            limit_amount = Decimal(limit_amount_val)
-
             command = CreateBudgetPlanningCommand(
                 planning_id=id,
-                current_balance=limit_amount,
-                limit_amount=limit_amount,
+                current_balance=limit_amount_val,
+                limit_amount=limit_amount_val,
                 description=description
             )
 
@@ -392,38 +323,22 @@ class BudgetCreateView(View):
         except Exception as e:
             messages.error(request, f"Erro ao criar orçamento: {str(e)}")
 
-        return redirect('planning-forecast', id=id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class BudgetEditView(View):
     def post(self, request, id):
-        from decimal import Decimal
-        from django.contrib import messages
-        from cashflow.application.ports.inbound.commands.budget_commands import UpdateBudgetPlanningCommand
-        from decimal import Decimal
-
         service = get_planning_service()
-        budget = service.budget_repo.find_by_id(id)
-        if not budget:
-            messages.error(request, "Orçamento não encontrado!")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
-
+            
         description = request.POST.get('description')
         limit_amount_str = request.POST.get('amount')
 
         try:
-            if not description or not description.strip():
-                raise ValueError("Descrição do orçamento não informada!")
-            if not limit_amount_str:
-                raise ValueError("Valor limite do orçamento não informado!")
-
             limit_amount_val = Decimal(limit_amount_str.replace('.', '').replace(',', '.'))
-            limit_amount = Decimal(limit_amount_val)
-
             command = UpdateBudgetPlanningCommand(
                 id=id,
-                current_balance=limit_amount,
-                limit_amount=limit_amount,
+                current_balance=limit_amount_val,
+                limit_amount=limit_amount_val,
                 description=description
             )
 
@@ -432,23 +347,17 @@ class BudgetEditView(View):
         except Exception as e:
             messages.error(request, f"Erro ao atualizar orçamento: {str(e)}")
 
-        return redirect('planning-forecast', id=budget.planning_id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class BudgetDeleteView(View):
     def post(self, request, id):
-        from django.contrib import messages
         service = get_planning_service()
-        budget = service.budget_repo.find_by_id(id)
-        if not budget:
-            messages.error(request, "Orçamento não encontrado!")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        planning_id = budget.planning_id
         try:
             service.remove_budget_from_planning(id)
             messages.success(request, "Orçamento excluído com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao excluir orçamento: {str(e)}")
 
-        return redirect('planning-forecast', id=planning_id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))

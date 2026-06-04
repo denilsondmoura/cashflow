@@ -6,7 +6,8 @@ class CreateRecurringTransactionPlanningCommand(BaseModel):
     planning_id: int
     due_date: date
     description: str = Field(min_length=3)
-    amount: Decimal
+    amount: Decimal = Field(ge=Decimal(0))
+    type: str
     cleared: bool
     auto_pay: bool
     repeat: bool
@@ -34,8 +35,5 @@ class UpdateTransactionPlanningCommand(BaseModel):
     description: str = Field(min_length=3)
     amount: Decimal
     cleared: bool
-    auto_pay: bool
-    repeat: bool
-    iterations: int | None = None
-    repeat_until: date | None = None
+
 

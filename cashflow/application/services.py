@@ -137,7 +137,7 @@ class PlanningService(PlanningUseCase):
             due_date=command.due_date,
             description=command.description,
             amount=command.amount,
-            type="outflow" if command.amount < 0 else "inflow",
+            type=command.type,
             cleared=command.cleared,
             cleared_at=date.today() if command.cleared else None,
             auto_pay=command.auto_pay,
@@ -169,12 +169,16 @@ class PlanningService(PlanningUseCase):
         planning = self.planning_repo.find_by_id(transaction.planning_id)
         if not planning:
             raise ValueError("Planejamento não encontrado!")
-            
+        
+        cleared_at = transaction.cleared_at if command.cleared else None
+        if not transaction.cleared and command.cleared:
+            cleared_at = date.today()
+
         transaction.due_date = command.due_date
         transaction.description = command.description
         transaction.amount = command.amount
         transaction.cleared = command.cleared
-        transaction.auto_pay = command.auto_pay
+        transaction.cleared_at = cleared_at
         
         self.transaction_repo.save(transaction)
         planning.update_transaction(transaction)

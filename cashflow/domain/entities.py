@@ -228,6 +228,12 @@ class Transaction(BaseModel):
         if not self.type:
             self.type = "outflow" if self.amount < Decimal(0) else "inflow"
 
+        amount_val = abs(self.amount)
+        if self.type == 'outflow':
+                self.amount = -amount_val
+        else:
+            self.amount = amount_val
+
         return self
 
 class Notification(BaseModel):
