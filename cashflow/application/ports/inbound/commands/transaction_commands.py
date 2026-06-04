@@ -1,27 +1,20 @@
-from cashflow.domain.objects_values import Currency
+from decimal import Decimal
 from datetime import date
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, model_validator
 
-@dataclass
-class CreateRecurringTransactionPlanningCommand:
+class CreateRecurringTransactionPlanningCommand(BaseModel):
     planning_id: int
     due_date: date
-    description: str
-    amount: Currency
+    description: str = Field(min_length=3)
+    amount: Decimal
     cleared: bool
     auto_pay: bool
     repeat: bool
-    repeat_until: date
-    iterations: int
+    repeat_until: date | None = None
+    iterations: int | None = None
 
-
-    def __post_init__(self):
-        if not self.due_date:
-            raise ValueError("Data prevista da transação não informada")
-        
-        if not self.description or not self.description.strip():
-            raise ValueError("Descrição da transação não informada")
-
+    @model_validator(mode='after')
+    def validate_recurring_rules(self):
         if self.repeat:
             if not self.iterations and not self.repeat_until:
                 raise ValueError("Defina a data limite ou a quantidade de repetições da transação!")
@@ -32,33 +25,17 @@ class CreateRecurringTransactionPlanningCommand:
             if self.repeat_until is not None and self.repeat_until < self.due_date:
                 raise ValueError("Data de repetição da transação inválida!")
 
+        return self
 
-@dataclass
-class UpdateTransactionPlanningCommand:
+
+class UpdateTransactionPlanningCommand(BaseModel):
     id: int
     due_date: date
-    description: str
-    amount: Currency
+    description: str = Field(min_length=3)
+    amount: Decimal
     cleared: bool
-    cleared_at: date
     auto_pay: bool
     repeat: bool
-    iterations: int
-    repeat_until: date
+    iterations: int | None = None
+    repeat_until: date | None = None
 
-    def __post_init__(self):
-        if not self.due_date:
-            raise ValueError("Data prevista da transação não informada")
-        
-        if not self.description or not self.description.strip():
-            raise ValueError("Descrição da transação não informada")
-
-
-@dataclass
-class FilterTransactionPlanningCommand:
-    data_from: date
-    data_to: date
-    description: str
-    type: str
-    cleared: bool
-    auto_pay: bool

@@ -142,12 +142,12 @@ class PlanningCashflowView(LoginRequiredMixin, View):
                 
         months_in_range = sorted(list(set(months_in_range)))
         
-        total_balance = sum(b.current_balance.value for b in planning.budgets) if planning.budgets else Decimal('0.00')
+        total_balance = sum(b.current_balance for b in planning.budgets) if planning.budgets else Decimal('0.00')
         
         current_baseline = total_balance
         current_saldo = total_balance
         
-        diario_val = planning.average_daily_expenditure.value if planning.average_daily_expenditure else Decimal('0.00')
+        diario_val = planning.average_daily_expenditure if planning.average_daily_expenditure else Decimal('0.00')
         
         def format_currency(val):
             prefix = "-" if val < 0 else ""
@@ -163,13 +163,13 @@ class PlanningCashflowView(LoginRequiredMixin, View):
             for d in range(1, num_days + 1):
                 day_date = date(year, month, d)
                 
-                day_inflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and (t.type == "inflow" or t.amount.value >= 0)]
-                day_inflow_sum = sum(t.amount.value for t in day_inflows_txs)
+                day_inflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and (t.type == "inflow" or t.amount >= 0)]
+                day_inflow_sum = sum(t.amount for t in day_inflows_txs)
                 
-                day_outflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and not (t.type == "inflow" or t.amount.value >= 0)]
-                day_outflow_sum = sum(abs(t.amount.value) for t in day_outflows_txs)
+                day_outflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and not (t.type == "inflow" or t.amount >= 0)]
+                day_outflow_sum = sum(abs(t.amount) for t in day_outflows_txs)
                 
-                day_outflow_realized_sum = sum(abs(t.amount.value) for t in day_outflows_txs if t.cleared or t.auto_pay)
+                day_outflow_realized_sum = sum(abs(t.amount) for t in day_outflows_txs if t.cleared or t.auto_pay)
                 
                 current_baseline = current_baseline + day_inflow_sum - day_outflow_sum - diario_val
                 current_saldo = current_saldo + day_inflow_sum - day_outflow_realized_sum - diario_val
@@ -215,7 +215,7 @@ class PlanningCashflowView(LoginRequiredMixin, View):
                 budget_list.append({
                     "id": b.id,
                     "description": b.description,
-                    "amount_formatted": format_currency(b.current_balance.value)
+                    "amount_formatted": format_currency(b.current_balance)
                 })
                 
         context = {
@@ -233,7 +233,7 @@ class TransactionCreateView(LoginRequiredMixin, View):
         from decimal import Decimal
         from django.contrib import messages
         from cashflow.application.ports.inbound.commands.transaction_commands import CreateRecurringTransactionPlanningCommand
-        from cashflow.domain.objects_values import Currency
+        from decimal import Decimal
 
         service = get_planning_service()
         planning = service.planning_repo.find_by_id(id)
@@ -267,7 +267,7 @@ class TransactionCreateView(LoginRequiredMixin, View):
                 planning_id=id,
                 due_date=due_date,
                 description=description,
-                amount=Currency(amount_val),
+                amount=Decimal(amount_val),
                 cleared=cleared,
                 auto_pay=auto_pay,
                 repeat=repeat,
@@ -289,7 +289,7 @@ class TransactionEditView(View):
         from django.contrib import messages
         from datetime import datetime
         from cashflow.application.ports.inbound.commands.transaction_commands import UpdateTransactionPlanningCommand
-        from cashflow.domain.objects_values import Currency
+        from decimal import Decimal
 
         service = get_planning_service()
         transaction = service.transaction_repo.find_by_id(id)
@@ -324,7 +324,7 @@ class TransactionEditView(View):
                 id=id,
                 due_date=due_date,
                 description=description,
-                amount=Currency(amount_val),
+                amount=Decimal(amount_val),
                 cleared=cleared,
                 cleared_at=cleared_at,
                 auto_pay=transaction.auto_pay,
@@ -365,7 +365,7 @@ class BudgetCreateView(View):
         from decimal import Decimal
         from django.contrib import messages
         from cashflow.application.ports.inbound.commands.budget_commands import CreateBudgetPlanningCommand
-        from cashflow.domain.objects_values import Currency
+        from decimal import Decimal
 
         service = get_planning_service()
         description = request.POST.get('description')
@@ -378,7 +378,7 @@ class BudgetCreateView(View):
                 raise ValueError("Valor limite do orçamento não informado!")
 
             limit_amount_val = Decimal(limit_amount_str.replace('.', '').replace(',', '.'))
-            limit_amount = Currency(limit_amount_val)
+            limit_amount = Decimal(limit_amount_val)
 
             command = CreateBudgetPlanningCommand(
                 planning_id=id,
@@ -400,7 +400,7 @@ class BudgetEditView(View):
         from decimal import Decimal
         from django.contrib import messages
         from cashflow.application.ports.inbound.commands.budget_commands import UpdateBudgetPlanningCommand
-        from cashflow.domain.objects_values import Currency
+        from decimal import Decimal
 
         service = get_planning_service()
         budget = service.budget_repo.find_by_id(id)
@@ -418,7 +418,7 @@ class BudgetEditView(View):
                 raise ValueError("Valor limite do orçamento não informado!")
 
             limit_amount_val = Decimal(limit_amount_str.replace('.', '').replace(',', '.'))
-            limit_amount = Currency(limit_amount_val)
+            limit_amount = Decimal(limit_amount_val)
 
             command = UpdateBudgetPlanningCommand(
                 id=id,

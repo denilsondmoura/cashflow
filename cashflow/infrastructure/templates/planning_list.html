@@ -19,9 +19,10 @@
             <div class="card h-100 hover-lift">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="planning-badge px-2 py-1 rounded small fw-bold" style="background-color: #002147; color: white; border: 1px solid #002147;">
+                        <!-- <div class="planning-badge px-2 py-1 rounded small fw-bold" style="background-color: #002147; color: white; border: 1px solid #002147;">
                             {{ planning.status|upper }}
-                        </div>
+                        </div> -->
+                        <h3 class="h5 fw-bold mb-3">{{ planning.name }}</h3>
                         <div class="dropdown">
                             <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
                                 <i class="fas fa-ellipsis-v"></i>
@@ -32,7 +33,6 @@
                             </ul>
                         </div>
                     </div>
-                    <h3 class="h5 fw-bold mb-3">{{ planning.name }}</h3>
                     <p class="text-muted small pb-0">
                         <i class="fas fa-calendar-alt me-2"></i>Término em: {{ planning.end_date|date:"d/m/Y" }}
                     </p>

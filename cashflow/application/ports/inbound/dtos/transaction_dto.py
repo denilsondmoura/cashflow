@@ -1,6 +1,4 @@
 from pydantic import BaseModel
-from cashflow.domain.objects_values import Currency
-from datetime import date
 from typing import List
 
 

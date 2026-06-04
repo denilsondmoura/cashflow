@@ -3,9 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from cashflow.domain.entities import (
-    Planning, 
-    Budget, 
-    Transaction
+    Planning
 )
 
 from .commands.planning_commands import (
@@ -20,8 +18,7 @@ from .commands.budget_commands import (
 
 from .commands.transaction_commands import (
     CreateRecurringTransactionPlanningCommand,
-    UpdateTransactionPlanningCommand,
-    FilterTransactionPlanningCommand
+    UpdateTransactionPlanningCommand
 )
 
 
@@ -55,10 +52,6 @@ class PlanningUseCase(ABC):
         pass
 
     @abstractmethod
-    def list_budgets(self) -> Optional[list[Budget]]:
-        pass
-
-    @abstractmethod
     def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionPlanningCommand) -> bool:
         pass
 
@@ -70,10 +63,6 @@ class PlanningUseCase(ABC):
     def remove_transaction_from_planning(self, id: int) -> bool:
         pass
     
-    @abstractmethod
-    def filter_transactions_in_planning(self, command: FilterTransactionPlanningCommand) -> Optional[list[Transaction]]:
-        pass
-
     @abstractmethod
     def visualize_forecast_transactions_in_planning(self, planning_id: int) -> PlanningForecastScreenDTO:
         pass

@@ -2,7 +2,7 @@ from typing import Optional, List
 from datetime import date
 from django.shortcuts import get_object_or_404
 from cashflow.domain.entities import Planning, Budget, Transaction, Notification, User
-from cashflow.domain.objects_values import Currency
+from decimal import Decimal
 from .models import PlanningModel, BudgetModel, TransactionModel, NotificationModel
 from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
 from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
@@ -35,9 +35,9 @@ class DjangoPlanningRepository(PlanningRepository):
             name=model.name,
             end_date=model.end_date,
             start_billing_cycle=model.start_billing_cycle,
-            average_daily_expenditure=Currency(model.average_daily_expenditure),
-            total_budgeted_amount=Currency(model.total_budgeted_amount),
-            total_balance_amount=Currency(model.total_balance_amount),
+            average_daily_expenditure=Decimal(model.average_daily_expenditure),
+            total_budgeted_amount=Decimal(model.total_budgeted_amount),
+            total_balance_amount=Decimal(model.total_balance_amount),
             budgets=[DjangoBudgetRepository._to_entity(b) for b in model.budgets.all()],
             transactions=[DjangoTransactionRepository._to_entity(t) for t in model.transactions.all()],
             notifications=[DjangoNotificationRepository._to_entity(n) for n in model.notifications.all()],
@@ -69,9 +69,9 @@ class DjangoPlanningRepository(PlanningRepository):
             "name": planning.name,
             "end_date": planning.end_date,
             "start_billing_cycle": planning.start_billing_cycle,
-            "average_daily_expenditure": planning.average_daily_expenditure.value,
-            "total_budgeted_amount": planning.total_budgeted_amount.value,
-            "total_balance_amount": planning.total_balance_amount.value,
+            "average_daily_expenditure": planning.average_daily_expenditure,
+            "total_budgeted_amount": planning.total_budgeted_amount,
+            "total_balance_amount": planning.total_balance_amount,
             "status": planning.status
         }
 
@@ -120,16 +120,16 @@ class DjangoBudgetRepository(BudgetRepository):
     def _to_entity(model: BudgetModel) -> Budget:
         return Budget(
             id=model.id,
-            current_balance=Currency(model.current_balance),
-            limit_amount=Currency(model.limit_amount),
+            current_balance=Decimal(model.current_balance),
+            limit_amount=Decimal(model.limit_amount),
             description=model.description,
             planning_id=model.planning_id
         )
 
     def save(self, budget: Budget) -> Budget:
         data = {
-            "current_balance": budget.current_balance.value,
-            "limit_amount": budget.limit_amount.value,
+            "current_balance": budget.current_balance,
+            "limit_amount": budget.limit_amount,
             "description": budget.description,
             "planning_id": budget.planning_id
         }
@@ -169,7 +169,7 @@ class DjangoTransactionRepository(TransactionRepository):
             id=model.id,
             due_date=model.due_date,
             description=model.description,
-            amount=Currency(model.amount),
+            amount=Decimal(model.amount),
             type=model.type,
             cleared=model.cleared,
             cleared_at=model.cleared_at,
@@ -181,7 +181,7 @@ class DjangoTransactionRepository(TransactionRepository):
         data = {
             "due_date": transaction.due_date,
             "description": transaction.description,
-            "amount": transaction.amount.value,
+            "amount": transaction.amount,
             "type": transaction.type,
             "cleared": transaction.cleared,
             "cleared_at": transaction.cleared_at,

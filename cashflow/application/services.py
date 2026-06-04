@@ -1,11 +1,12 @@
-from cashflow.application.ports.inbound.commands import planning_commands
-from cashflow.application.ports.inbound.dtos.planning_dto import PlanningItemDTO
-from cashflow.application.ports.inbound.commands import budget_commands
 import contextlib
 from typing import Optional, List
 from datetime import date
 from collections import defaultdict
+from decimal import Decimal
 
+from cashflow.application.ports.inbound.commands import planning_commands
+from cashflow.application.ports.inbound.dtos.planning_dto import PlanningItemDTO
+from cashflow.application.ports.inbound.commands import budget_commands
 from cashflow.application.ports.inbound.use_cases import PlanningUseCase
 from cashflow.application.ports.inbound.dtos.transaction_dto import TransactionItemDTO, TransactionsGroupedByMonthDTO
 from cashflow.application.ports.inbound.dtos.planning_dto import PlanningForecastScreenDTO
@@ -24,12 +25,10 @@ from cashflow.application.ports.inbound.commands.budget_commands import (
 )
 from cashflow.application.ports.inbound.commands.transaction_commands import (
     CreateRecurringTransactionPlanningCommand,
-    UpdateTransactionPlanningCommand,
-    FilterTransactionPlanningCommand
+    UpdateTransactionPlanningCommand
 )
 
 from cashflow.domain.entities import Planning, Budget, Transaction
-from cashflow.domain.objects_values import Currency
 
 
 class PlanningService(PlanningUseCase):
@@ -48,9 +47,9 @@ class PlanningService(PlanningUseCase):
             id=0,  # Repo will assign ID
             name=command.name,
             end_date=command.end_date,
-            average_daily_expenditure=Currency(0),
-            total_budgeted_amount=Currency(0),
-            total_balance_amount=Currency(0),
+            average_daily_expenditure=Decimal(0),
+            total_budgeted_amount=Decimal(0),
+            total_balance_amount=Decimal(0),
             budgets=[],
             transactions=[],
             notifications=[],
@@ -127,9 +126,6 @@ class PlanningService(PlanningUseCase):
         self.planning_repo.save(planning)
         return True
 
-    def list_budgets(self) -> Optional[list[Budget]]:
-        return self.budget_repo.list_all(page=1, page_size=100)
-
     def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionPlanningCommand) -> bool:
         planning = self.planning_repo.find_by_id(command.planning_id)
         if not planning:
@@ -178,7 +174,6 @@ class PlanningService(PlanningUseCase):
         transaction.description = command.description
         transaction.amount = command.amount
         transaction.cleared = command.cleared
-        transaction.cleared_at = command.cleared_at
         transaction.auto_pay = command.auto_pay
         
         self.transaction_repo.save(transaction)
@@ -188,16 +183,6 @@ class PlanningService(PlanningUseCase):
 
     def remove_transaction_from_planning(self, id: int) -> bool:
         return self.transaction_repo.delete(id)
-
-    def filter_transactions_in_planning(self, command: FilterTransactionPlanningCommand) -> Optional[list[Transaction]]:
-        return self.transaction_repo.filter(
-            data_from=command.data_from,
-            data_to=command.data_to,
-            description=command.description,
-            type=command.type,
-            cleared=command.cleared,
-            auto_pay=command.auto_pay
-        )
 
     def visualize_forecast_transactions_in_planning(self, planning_id: int) -> PlanningForecastScreenDTO:
         def group_transactions_dto_by_month(transactions_by_month: dict) -> List[TransactionsGroupedByMonthDTO]:
@@ -210,17 +195,17 @@ class PlanningService(PlanningUseCase):
             for month_num, txs in sorted(transactions_by_month.items()):
                 month_name = MONTH_NAMES.get(month_num, "OUTRO")
                 txs_sorted = sorted(txs, key=lambda tx: tx.due_date)
-                total = sum(tx.amount.value for tx in txs_sorted)
+                total = sum(tx.amount for tx in txs_sorted)
 
                 transactions_items_dto = []
                 for tx in txs_sorted:
-                    amount_raw_value = abs(tx.amount.value) if tx.type == 'outflow' else tx.amount.value
+                    amount_raw_value = abs(tx.amount) if tx.type == 'outflow' else tx.amount
                     transaction_dto = TransactionItemDTO(
                         id = tx.id,
                         due_date_str = tx.due_date.strftime("%d/%m"),
                         due_date_iso = tx.due_date.strftime("%Y-%m-%d"),
                         description = tx.description,
-                        amount_formatted = f"R$ {tx.amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                        amount_formatted = f"R$ {tx.amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
                         amount_raw = f"{amount_raw_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
                         cleared = tx.cleared,
                         type = tx.type
@@ -255,7 +240,7 @@ class PlanningService(PlanningUseCase):
         if transactions:
             for t in transactions:
                 month_num = t.due_date.month
-                if t.type == "inflow" or t.amount.value >= 0:
+                if t.type == "inflow" or t.amount >= 0:
                     inflows_by_month[month_num].append(t)
                 else:
                     outflows_by_month[month_num].append(t)
@@ -268,12 +253,12 @@ class PlanningService(PlanningUseCase):
         budgets = planning.budgets if planning.budgets else []
         if budgets:
             for b in budgets:
-                total_budget += b.limit_amount.value
+                total_budget += b.limit_amount
                 budget_item_dto = BudgetItemDTO(
                     id=b.id,
                     description=b.description,
-                    amount_formatted=f"R$ {b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                    amount_raw=f"{b.limit_amount.value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    amount_formatted=f"R$ {b.limit_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                    amount_raw=f"{b.limit_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                 )
                 budgets_list.append(budget_item_dto)
 

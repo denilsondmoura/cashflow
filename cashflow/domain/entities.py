@@ -1,11 +1,12 @@
-from cashflow.domain.objects_values import Currency
-from datetime import date, timedelta
+from typing import Self
+from decimal import Decimal
+from datetime import date, timedelta, datetime
 from dataclasses import dataclass
 from typing import Optional
+from pydantic import BaseModel, Field, model_validator
 import calendar
 
-@dataclass
-class User:
+class User(BaseModel):
     id: int
     username: str
     first_name: str
@@ -14,30 +15,29 @@ class User:
     plannings: list['Planning']
 
 
-@dataclass
-class Planning:
+class Planning(BaseModel):
     id: int
     name: str
     end_date: date
-    start_billing_cycle: int
-    average_daily_expenditure: Currency
-    total_budgeted_amount: Currency
-    total_balance_amount: Currency
+    start_billing_cycle: int = Field(gt=0, lt=29)
+    average_daily_expenditure: Decimal
+    total_budgeted_amount: Decimal
+    total_balance_amount: Decimal
     budgets: list['Budget']
     transactions: list['Transaction']
     notifications: list['Notification']
-    created_at: date = None
-    updated_at: date = None
-    created_by: User = None
-    updated_by: User = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    created_by: User | None = None
+    updated_by: User | None = None
     status: str = "updated"
 
-    def __post_init__(self):
-        if self.end_date < date.today():
+    @model_validator(mode='after')
+    def validations(self):
+        if self.end_date <= date.today():
             raise ValueError("Data final do planejamento deve ser maior que a data atual!") 
 
-        if self.start_billing_cycle < 1 or self.start_billing_cycle > 28:
-            raise ValueError("O dia de início do ciclo deve estar entre 1 e 28!") 
+        return self
 
     def _add_months(self, sourcedate, months):
         month = sourcedate.month - 1 + months
@@ -48,12 +48,12 @@ class Planning:
 
     def _update_values(self):
         self.updated_at = date.today()
-        self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Currency(0)
-        self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Currency(0)
+        self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Decimal(0)
+        self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Decimal(0)
         if self.total_budgeted_amount:
-            self.average_daily_expenditure = self.total_budgeted_amount / 30.5
+            self.average_daily_expenditure = self.total_budgeted_amount / Decimal('30.5')
         else:
-            self.average_daily_expenditure = Currency(0)
+            self.average_daily_expenditure = Decimal(0)
 
     def add_recurring_transaction(self, transaction: 'Transaction', iterations=None, repeat_until=None):
         current_date = transaction.due_date
@@ -186,74 +186,60 @@ class Planning:
         return True
 
 
-@dataclass
-class Budget:
+class Budget(BaseModel):
     id: int
-    current_balance: Currency
-    limit_amount: Currency
-    description: str
+    current_balance: Decimal
+    limit_amount: Decimal
+    description: str = Field(min_length=2)
     planning_id: int
-    created_at: date = None
-    updated_at: date = None
-    created_by: User = None
-    updated_by: User = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    created_by: User | None = None
+    updated_by: User | None = None
 
     def __post_init__(self):
         if not self.current_balance:
-            self.current_balance = Currency(0)
+            self.current_balance = Decimal(0)
         
         if not self.limit_amount:
-            self.limit_amount = Currency(0)
+            self.limit_amount = Decimal(0)
 
         if not self.planning_id:
             raise ValueError("Planejamento ao qual o orçamento pertence não foi informado!")
 
 
-@dataclass
-class Transaction:
+class Transaction(BaseModel):
     id: int
     due_date: date
-    description: str
-    amount: Currency
+    description: str = Field(min_length=2)
+    amount: Decimal = Decimal(0)
     type: str
-    cleared: bool
-    cleared_at: date
-    auto_pay: bool
+    cleared: bool = False
+    cleared_at: date | None = None
+    auto_pay: bool = False
     planning_id: int
-    created_at: date = None
-    updated_at: date = None
-    created_by: User = None
-    updated_by: User = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    created_by: User | None = None
+    updated_by: User | None = None
 
-    def __post_init__(self):
-        if not self.amount:
-            self.amount = Currency(0)
-        
-        if not self.cleared:
-            self.cleared = False
-
-        if not self.auto_pay:
-            self.auto_pay = False
-        
+    @model_validator(mode='after')
+    def validation(self):
         if not self.type:
-            self.type = "outflow" if self.amount < Currency(0) else "inflow"
+            self.type = "outflow" if self.amount < Decimal(0) else "inflow"
 
-        
-        if not self.planning_id:
-            raise ValueError("Planejamento ao qual a transação pertence não foi informado!")
+        return self
 
-
-@dataclass
-class Notification:
+class Notification(BaseModel):
     id: int
     trigger_date: date
-    message: str
-    related_transaction_id: int
-    is_read: bool
+    message: str = Field(min_length=2)
+    related_transaction_id: int | None = None
+    is_read: bool = False
     planning_id: int
-    created_at: date = None
-    updated_at: date = None
-    created_by: User = None
-    updated_by: User = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    created_by: User | None = None
+    updated_by: User | None = None
 
     

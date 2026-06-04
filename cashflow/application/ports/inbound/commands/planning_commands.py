@@ -1,39 +1,16 @@
 from datetime import date
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
-
-@dataclass
-class CreatePlanningCommand:
-    name: str
+class CreatePlanningCommand(BaseModel):
+    name: str = Field(min_length=2)
     end_date: date
     start_billing_cycle: int
     created_by: str
 
-    def __post_init__(self):
-        if not self.end_date:
-            raise ValueError("Data final do planejamento não informada!")        
 
-        if not self.name or not self.name.strip():
-            raise ValueError("Nome do planejamento não informado!")
-
-        if not self.start_billing_cycle:
-            raise ValueError("Dia de início do ciclo de faturamento não informado!")
-
-
-@dataclass
-class UpdatePlanningCommand:
+class UpdatePlanningCommand(BaseModel):
     id: int
-    name: str
+    name: str =Field(min_length=2)
     end_date: date
     start_billing_cycle: int
     updated_by: str
-
-    def __post_init__(self):
-        if not self.end_date:
-            raise ValueError("Data final do planejamento não informada!")        
-
-        if not self.name or not self.name.strip():
-            raise ValueError("Nome do planejamento não informado!")
-
-        if not self.start_billing_cycle:
-            raise ValueError("Dia de início do ciclo de faturamento não informado!")
