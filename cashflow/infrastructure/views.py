@@ -48,9 +48,9 @@ class PlanningUpdateView(LoginRequiredMixin, View):
     def post(self, request, id):
         service = get_planning_service()
         
-        name = request.POST.get('name')
-        start_billing_cycle = int(request.POST.get('start_billing_cycle', 1))
-        end_date_str = request.POST.get('end_date')
+        name = request.POST.get('name') or None
+        start_billing_cycle = int(request.POST.get('start_billing_cycle', 1)) or None
+        end_date_str = request.POST.get('end_date') or None
 
         command = UpdatePlanningCommand(
             id=id,
@@ -83,12 +83,13 @@ class PlanningDetailsView(LoginRequiredMixin, View):
 class PlanningForecastView(LoginRequiredMixin, View):
     def get(self, request, id):
         service = get_planning_service()
-        planning = service.planning_repo.find_by_id(id)
-        if not planning:
+
+        try: 
+            planning_forecast_screen_dto = service.visualize_forecast_transactions_in_planning(id)
+        except Exception as e:
+            messages.error(request, f"Erro ao consultar movimentações previstas: {str(e)}")
             return redirect('planning-list-create')
-            
-        planning_forecast_screen_dto = service.visualize_forecast_transactions_in_planning(id)
-        
+
         context = {
             "planning": planning_forecast_screen_dto.planning,
             "inflows_grouped": planning_forecast_screen_dto.inflows,
@@ -258,8 +259,7 @@ class TransactionCreateView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"Erro ao cadastrada transação: {str(e)}")
 
-
-        return redirect('planning-forecast', id=id)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 class TransactionEditView(View):
