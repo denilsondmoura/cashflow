@@ -14,3 +14,12 @@ class PlanningForecastScreenDTO(BaseModel):
     outflows: List[TransactionsGroupedByMonthDTO]
     budgets: List[BudgetItemDTO]
     total_budget_formatted: str
+
+
+class PlanningCashflowScreenDTO(BaseModel):
+    planning: PlanningItemDTO
+    months_data: List[dict]
+    budgets: List[BudgetItemDTO]
+    total_balance_formatted: str
+    diario_val_formatted: str
+    

@@ -1,6 +1,8 @@
 import contextlib
+import calendar
+import math
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime
 from collections import defaultdict
 from decimal import Decimal
 
@@ -9,7 +11,7 @@ from cashflow.application.ports.inbound.dtos.planning_dto import PlanningItemDTO
 from cashflow.application.ports.inbound.commands import budget_commands
 from cashflow.application.ports.inbound.use_cases import PlanningUseCase
 from cashflow.application.ports.inbound.dtos.transaction_dto import TransactionItemDTO, TransactionsGroupedByMonthDTO
-from cashflow.application.ports.inbound.dtos.planning_dto import PlanningForecastScreenDTO
+from cashflow.application.ports.inbound.dtos.planning_dto import PlanningForecastScreenDTO,PlanningCashflowScreenDTO
 from cashflow.application.ports.inbound.dtos.planning_dto import BudgetItemDTO
 from cashflow.application.ports.outbound.repositories.planning_repository import PlanningRepository
 from cashflow.application.ports.outbound.repositories.budget_repository import BudgetRepository
@@ -29,6 +31,7 @@ from cashflow.application.ports.inbound.commands.transaction_commands import (
 )
 
 from cashflow.domain.entities import Planning, Budget, Transaction
+from cashflow.domain.enums import MONTH_NAMES
 
 
 class PlanningService(PlanningUseCase):
@@ -190,10 +193,6 @@ class PlanningService(PlanningUseCase):
 
     def visualize_forecast_transactions_in_planning(self, planning_id: int) -> PlanningForecastScreenDTO:
         def group_transactions_dto_by_month(transactions_by_month: dict) -> List[TransactionsGroupedByMonthDTO]:
-            MONTH_NAMES = {
-                1: "JANEIRO", 2: "FEVEREIRO", 3: "MARÇO", 4: "ABRIL", 5: "MAIO", 6: "JUNHO",
-                7: "JULHO", 8: "AGOSTO", 9: "SETEMBRO", 10: "OUTUBRO", 11: "NOVEMBRO", 12: "DEZEMBRO"
-            }
 
             grouped_list: List[TransactionsGroupedByMonthDTO] = []
             for month_num, txs in sorted(transactions_by_month.items()):
@@ -274,4 +273,127 @@ class PlanningService(PlanningUseCase):
             outflows = outflows_grouped_list,
             budgets = budgets_list,
             total_budget_formatted = total_budget_formatted
+        )
+
+    def visualise_cashflow_in_planning(self, planning_id: int) -> PlanningCashflowScreenDTO:
+        def to_date(dt):
+            if isinstance(dt, datetime):
+                return dt.date()
+            return dt
+
+        def format_currency(val):
+            prefix = "-" if val < 0 else ""
+            abs_val = abs(val)
+            return f"{prefix}R$ {abs_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        planning = self.planning_repo.find_by_id(planning_id)
+        if not planning:
+            raise ValueError("Planejamento não encontrado!")
+
+        planning_item_dto = PlanningItemDTO(
+            id=planning.id,
+            name=planning.name
+        )
+            
+        transactions = planning.transactions if planning.transactions else []
+        
+        start_date = to_date(planning.created_at) if planning.created_at else date.today()
+        end_date = to_date(planning.end_date) if planning.end_date else date.today()
+        
+        planning_months = []
+        current_date = start_date.replace(day=1)
+        while current_date <= end_date:
+            planning_months.append((current_date.year, current_date.month))
+            if current_date.month == 12:
+                current_date = current_date.replace(year=current_date.year + 1, month=1)
+            else:
+                current_date = current_date.replace(month=current_date.month + 1)
+                
+        for transaction in transactions:
+            due_date = to_date(transaction.due_date)
+            mouth = (due_date.year, due_date.month)
+            if mouth not in planning_months:
+                planning_months.append(mouth)
+                
+        planning_months = sorted(list(set(planning_months)))
+        
+        total_balance = sum(b.current_balance for b in planning.budgets) if planning.budgets else Decimal('0.00')
+        
+        current_baseline = total_balance
+        current_saldo = total_balance
+        
+        diario_val = planning.average_daily_expenditure if planning.average_daily_expenditure else Decimal('0.00')
+            
+        months_data = []
+        for year, month in planning_months:
+            month_name = MONTH_NAMES.get(month, "OUTRO")
+            _, num_days = calendar.monthrange(year, month)
+            
+            days_data = []
+            for day in range(1, num_days + 1):
+                day_date = date(year, month, day)
+                
+                day_inflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and (t.type == "inflow" or t.amount >= 0)]
+                day_inflow_sum = sum(t.amount for t in day_inflows_txs)
+                
+                day_outflows_txs = [t for t in transactions if to_date(t.due_date) == day_date and not (t.type == "inflow" or t.amount >= 0)]
+                day_outflow_sum = sum(abs(t.amount) for t in day_outflows_txs)
+                
+                day_outflow_realized_sum = sum(abs(t.amount) for t in day_outflows_txs if t.cleared or t.auto_pay)
+                
+                current_baseline = current_baseline + day_inflow_sum - day_outflow_sum - diario_val
+                current_saldo = current_saldo + day_inflow_sum - day_outflow_realized_sum - diario_val
+                
+                days_data.append({
+                    "date_str": f"{day:02d}/{month:02d}",
+                    "inflow_formatted": format_currency(day_inflow_sum) if day_inflow_sum > 0 else "-",
+                    "outflow_formatted": format_currency(day_outflow_sum) if day_outflow_sum > 0 else "-",
+                    "diario_formatted": format_currency(diario_val),
+                    "saldo_formatted": format_currency(current_saldo),
+                    "baseline_formatted": format_currency(current_baseline),
+                })
+                
+            alerts = []
+            if current_saldo < 0:
+                alerts.append({
+                    "type": "danger",
+                    "message": f"Parece que nesse mês você vai terminar {format_currency(current_saldo)} no negativo, não seria a hora ideal para revisar seus gastos ou quem sabe buscar uma venda extra?"
+                })
+            else:
+                alerts.append({
+                    "type": "success",
+                    "message": f"Parece que nesse mês vai sobrar {format_currency(current_saldo)}, que tal colocar na sua reserva de emergencia ou em algum item da sua lista de desejos?"
+                })
+                
+            if current_saldo < current_baseline:
+                diff = current_baseline - current_saldo
+                days_to_recover = math.ceil(diff / diario_val) if diario_val > 0 else 0
+                alerts.append({
+                    "type": "warning",
+                    "message": f"Seu saldo esta {format_currency(diff)} abaixo do planejado, mas nada que maneirar nos gastos por {days_to_recover} dias não resolva ;)"
+                })
+                
+            months_data.append({
+                "month_name": f"{month_name}",
+                "days": days_data,
+                "alerts": alerts
+            })
+            
+        budget_list: List[BudgetItemDTO] = []
+        if planning.budgets:
+            for b in planning.budgets:
+                budget_item_dto = BudgetItemDTO(
+                    id=b.id,
+                    description=b.description,
+                    amount_formatted=f"R$ {b.limit_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                    amount_raw=f"{b.limit_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                )
+                budget_list.append(budget_item_dto)
+
+        return PlanningCashflowScreenDTO(
+            planning=planning_item_dto,
+            months_data=months_data,
+            budgets=budget_list,
+            total_balance_formatted=format_currency(total_balance),
+            diario_val_formatted=format_currency(diario_val)
         )
