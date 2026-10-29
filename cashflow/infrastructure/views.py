@@ -6,7 +6,7 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 
-from cashflow.application.ports.inbound.commands.transaction_commands import CreateRecurringTransactionPlanningCommand, UpdateTransactionPlanningCommand
+from cashflow.application.ports.inbound.commands.transaction_commands import CreateRecurringTransactionToPlanningCommand, UpdateTransactionPlanningCommand
 from cashflow.application.ports.inbound.commands.planning_commands import CreatePlanningCommand, UpdatePlanningCommand
 from cashflow.application.ports.inbound.commands.budget_commands import CreateBudgetPlanningCommand, UpdateBudgetPlanningCommand
 from .repositories import DjangoPlanningRepository, DjangoBudgetRepository, DjangoTransactionRepository
@@ -120,36 +120,14 @@ class PlanningCashflowView(LoginRequiredMixin, View):
         return render(request, 'planing_cashflow.html', context)
 
 
-class TransactionCreateView(LoginRequiredMixin, View):
+class AddTransactionToPlanningView(LoginRequiredMixin, View):
     def post(self, request, id):
-        service = get_planning_service()
-
-        due_date_str = request.POST.get('due_date') or None
-        description = request.POST.get('description') or None
-        amount_str = request.POST.get('amount') or None
-        transaction_type = request.POST.get('type') or None  # 'inflow' or 'outflow'
-        cleared = request.POST.get('cleared') == 'on' or request.POST.get('cleared') == 'true'
-        auto_pay = request.POST.get('auto_pay') == 'on' or request.POST.get('auto_pay') == 'true'
-        repeat = request.POST.get('repeat') == 'on' or request.POST.get('repeat') == 'true'
-        repeat_until_str = request.POST.get('repeat_until') or None
-        iterations_str = request.POST.get('iterations') or None
-        
         try:
-            clean_amount = amount_str.replace('.', '').replace(',', '.')
-            command = CreateRecurringTransactionPlanningCommand(
-                planning_id=id,
-                due_date=due_date_str,
-                description=description,
-                amount=Decimal(clean_amount),
-                type=transaction_type,
-                cleared=cleared,
-                auto_pay=auto_pay,
-                repeat=repeat,
-                repeat_until=repeat_until_str,
-                iterations=iterations_str
-            )
+            command = CreateRecurringTransactionToPlanningCommand.from_request(request, id)
 
+            service = get_planning_service()
             service.add_recurring_transaction_to_planning(command)
+
             messages.success(request, "Transação cadastrada com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao cadastrada transação: {str(e)}")

@@ -39,22 +39,6 @@ class Planning(BaseModel):
 
         return self
 
-    def _add_months(self, sourcedate, months):
-        month = sourcedate.month - 1 + months
-        year = sourcedate.year + month // 12
-        month = month % 12 + 1
-        day = min(sourcedate.day, calendar.monthrange(year, month)[1])
-        return date(year, month, day)
-
-    def _update_values(self):
-        self.updated_at = date.today()
-        self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Decimal(0)
-        self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Decimal(0)
-        if self.total_budgeted_amount:
-            self.average_daily_expenditure = self.total_budgeted_amount / Decimal('30.5')
-        else:
-            self.average_daily_expenditure = Decimal(0)
-
     def add_recurring_transaction(self, transaction: 'Transaction', iterations=None, repeat_until=None):
         current_date = transaction.due_date
         count = 1
@@ -92,6 +76,13 @@ class Planning(BaseModel):
             current_date = self._add_months(current_date, 1)
             count += 1
 
+    def _add_months(self, sourcedate, months:int):
+        month = sourcedate.month - 1 + months
+        year = sourcedate.year + month // 12
+        month = month % 12 + 1
+        day = min(sourcedate.day, calendar.monthrange(year, month)[1])
+        return date(year, month, day)
+
     def update_transaction(self, transaction: 'Transaction'):
         # TODO: Corrigir essa implementação, acho que não precisa de um for pra isso
         transaction_index = -1
@@ -128,6 +119,15 @@ class Planning(BaseModel):
         self._update_values()
 
         return True
+
+    def _update_values(self):
+        self.updated_at = date.today()
+        self.total_budgeted_amount = sum(budget.limit_amount for budget in self.budgets) if self.budgets else Decimal(0)
+        self.total_balance_amount = sum(budget.current_balance for budget in self.budgets) if self.budgets else Decimal(0)
+        if self.total_budgeted_amount:
+            self.average_daily_expenditure = self.total_budgeted_amount / Decimal('30.5')
+        else:
+            self.average_daily_expenditure = Decimal(0)
 
     def update_budget(self, budget: 'Budget'):
         # TODO: Corrigir essa implementação, acho que não precisa de um for pra isso

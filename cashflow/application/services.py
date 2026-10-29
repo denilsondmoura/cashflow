@@ -26,7 +26,7 @@ from cashflow.application.ports.inbound.commands.budget_commands import (
     UpdateBudgetPlanningCommand
 )
 from cashflow.application.ports.inbound.commands.transaction_commands import (
-    CreateRecurringTransactionPlanningCommand,
+    CreateRecurringTransactionToPlanningCommand,
     UpdateTransactionPlanningCommand
 )
 
@@ -129,7 +129,7 @@ class PlanningService(PlanningUseCase):
         self.planning_repo.save(planning)
         return True
 
-    def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionPlanningCommand) -> bool:
+    def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionToPlanningCommand) -> bool:
         planning = self.planning_repo.find_by_id(command.planning_id)
         if not planning:
             raise ValueError("Planejamento não encontrado!")

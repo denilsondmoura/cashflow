@@ -17,7 +17,7 @@ from .commands.budget_commands import (
 )
 
 from .commands.transaction_commands import (
-    CreateRecurringTransactionPlanningCommand,
+    CreateRecurringTransactionToPlanningCommand,
     UpdateTransactionPlanningCommand
 )
 
@@ -52,7 +52,7 @@ class PlanningUseCase(ABC):
         pass
 
     @abstractmethod
-    def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionPlanningCommand) -> bool:
+    def add_recurring_transaction_to_planning(self, command: CreateRecurringTransactionToPlanningCommand) -> bool:
         pass
 
     @abstractmethod
